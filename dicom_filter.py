@@ -1,6 +1,6 @@
-from .con_reader import CONreaderVM
-from .dicom_reader import DCMreaderVM
-from .utils import get_logger
+from con_reader import CONreaderVM
+from dicom_reader import DCMreaderVM
+from utils import get_logger
 from math import floor
 import numpy as np
 import pickle
