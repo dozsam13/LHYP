@@ -11,12 +11,14 @@ with (open(fn, "rb")) as openfile:
       except EOFError:
           break
 
-for d in objects[1:]:
-  contourDict = d[1]
-  image = d[0]
-  cntrs = []
-  rgbs = []
-  for (mode,contourPoints) in contourDict.items():
+for systoleDiastole in objects[1]:
+  for e in systoleDiastole:
+    contourDict = e[1]
+    image = e[0]
+    slc_frm = e[2]
+    cntrs = []
+    rgbs = []
+    for (mode,contourPoints) in contourDict.items():
       # choose color
       if mode == 'ln':
           rgb = [1, 0, 0]
@@ -29,5 +31,6 @@ for d in objects[1:]:
       if rgb is not None:
           cntrs.append(contourPoints)
           rgbs.append(rgb)
-  if len(cntrs) > 0:
-      draw(image, cntrs, rgbs)
+
+    if len(cntrs) > 0:
+      draw(image, cntrs, rgbs, str(slc_frm))

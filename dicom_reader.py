@@ -12,14 +12,14 @@ class DCMreaderVM:
         '''
         Reads in the dcm files in a folder which corresponds to a patient.
         It follows carefully the physical slice locations and the frames in a hearth cycle.
-        It does not matter if the location is getting higher or lower. 
+        It does not matter if the location is getting higher or lower.
         '''
         self.num_slices = 0
         self.num_frames = 0
         self.broken = False
         images = []
         slice_locations = []
-        file_paths = []        
+        file_paths = []
 
         dcm_files = sorted(os.listdir(folder_name))
         dcm_files = [d for d in dcm_files if len(d.split('.')[-2]) < 4]
@@ -37,7 +37,7 @@ class DCMreaderVM:
                 except:
                     self.broken = True
                     return
-        
+
         current_sl = -1
         frames = 0
         increasing = False
@@ -53,7 +53,7 @@ class DCMreaderVM:
                     increasing = True
                 else:
                     increasing = False
-                
+
                 current_sl = slice_loc
             frames += 1
 
@@ -95,7 +95,7 @@ class DCMreaderVM:
 
     def get_image(self, slice, frame):
         return self.dcm_images[slice, frame, :, :]
-    
+
     def get_slicelocation(self, slice, frame):
         return self.dcm_slicelocations[slice, frame, 0]
 

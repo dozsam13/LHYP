@@ -6,8 +6,8 @@ from dicom_reader import DCMreaderVM
 from con2img import draw_contourmtcs2image as draw
 
 
-image_folder = '/media/adambudai/Storage/heartdata/hypertrophy/cleanready/10635813AMR806/sa/images'
-con_file = '/media/adambudai/Storage/heartdata/hypertrophy/cleanready/10635813AMR806/sa/contours.con'
+image_folder = 'C:\\dev\\LHYP\\sample\\13457546AMR801\\sa\\images'
+con_file = 'C:\\dev\\LHYP\\sample\\13457546AMR801\\sa\\contours.con'
 
 # reading the dicom files
 dr = DCMreaderVM(image_folder)
@@ -36,4 +36,4 @@ for slc in contours:
                 cntrs.append(contours[slc][frm][mode])
                 rgbs.append(rgb)
         if len(cntrs) > 0:
-            draw(image, cntrs, rgbs)
+            draw(image, cntrs, rgbs, str((slc,frm)))
