@@ -1,7 +1,7 @@
 from con_reader import CONreaderVM
 from dicom_reader import DCMreaderVM
 from utils import get_logger
-from math import floor
+from domain.patient_data import PatientData
 import numpy as np
 import pickle
 import os
@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 def create_path_for_file(pickle_file_path):
     os.makedirs(os.path.dirname(pickle_file_path), exist_ok=True)
 
-def collect_contour_slices_for_frames(contours):
+def collect_contour_slices_by_frames(contours):
     frameSliceDict = {}
     for slc in contours:
         for frm in contours[slc]:
@@ -22,7 +22,7 @@ def collect_contour_slices_for_frames(contours):
             frameSliceDict[frm].append(slc)
     return frameSliceDict
 
-def keepLeftVentricleContours(contours):
+def left_ventricle_contours(contours):
     left_ventricle_color_modes = {"ln", "lp"}
     left_ventricle_contours = {}
     for slc, frames in contours.items():
@@ -35,7 +35,23 @@ def keepLeftVentricleContours(contours):
             left_ventricle_contours[slc][frm] = filtered_contours
     return left_ventricle_contours
 
+def calculate_contour_slice_window(fame_slice_dict):
+    start_slice = max([min(slices) for frame, slices in fame_slice_dict.items()])
+    end_slice = min([max(slices) for frame, slices in fame_slice_dict.items()])
+    return (start_slice, end_slice)
 
+def swap_phases(patient_data):
+    comparing_contour_mode = common_contour_mode(patient_data)
+    systole_area = cv.contourArea(patient_data.mid_systole_contours()[comparing_contour_mode].astype(int))
+    diastole_area = cv.contourArea(patient_data.mid_diastole_contours()[comparing_contour_mode].astype(int))
+    return diastole_area < systole_area
+
+
+def common_contour_mode(patient_data):
+    systole_contours = set(patient_data.mid_systole_contours().keys())
+    diastole_contours = patient_data.mid_diastole_contours().keys()
+    common_contours = systole_contours.intersection(diastole_contours)
+    return next(iter(common_contours))
 
 def create_pickle_for_patient(in_dir, out_dir):
     scan_id = os.path.basename(in_dir)
@@ -55,43 +71,38 @@ def create_pickle_for_patient(in_dir, out_dir):
         return
 
     cr = CONreaderVM(con_file)
-    contours = keepLeftVentricleContours(cr.get_hierarchical_contours())
+    contours = left_ventricle_contours(cr.get_hierarchical_contours())
 
-    frameSliceDict = collect_contour_slices_for_frames(contours)
+    frame_slice_dict = collect_contour_slices_by_frames(contours)
+    if not (len(frame_slice_dict) == 2):
+        logger.error("Too many contour frames for {}".format(scan_id))
+        return
+
     pickle_file_path = os.path.join(out_dir, scan_id + ".p")
     create_path_for_file(pickle_file_path)
 
-    startingSlice = max([min(sliceList) for frame, sliceList in frameSliceDict.items()])
-    endingSlice = min([max(sliceList) for frame, sliceList in frameSliceDict.items()])
+    (start_slice, end_slice) = calculate_contour_slice_window(frame_slice_dict)
+    
     result = []
-    for frm in frameSliceDict:
-        s = []
+    for frm in frame_slice_dict:
+        phase = []
 
-        slices = list(filter(lambda s : s>=startingSlice and s<=endingSlice, frameSliceDict[frm]))
-        filteredSliceIndexes =  np.percentile(np.array(slices), (19,50,83))
-        filteredSliceIndexes = [floor(i) for i in filteredSliceIndexes]
+        slices = list(filter(lambda slc : slc>=start_slice and slc<=end_slice, frame_slice_dict[frm]))
+        sampling_slices =  np.percentile(np.array(slices), (19,50,83), interpolation='lower')
 
-        for slc in filteredSliceIndexes:
+        for slc in sampling_slices:
             image = dr.get_image(slc,frm)
-            s.append(((image.astype('uint8'), contours[slc][frm], (slc,frm))))
+            phase.append(((image.astype('uint8'), contours[slc][frm], (slc,frm))))
            
-        result.append(s)
+        result.append(phase)
 
-    comparing_contour_mode = next(iter(set(result[0][1][1].keys()).intersection(result[1][1][1].keys())))
-
-    area1 = cv.contourArea(result[0][1][1][comparing_contour_mode].astype(int))
-    area2 = cv.contourArea(result[1][1][1][comparing_contour_mode].astype(int))
-
-    if area2 > area1:
-        result[0], result[1] = result[1], result[0]
-        print(area2, area1, comparing_contour_mode)
-    else:
-        print(area1, area2, comparing_contour_mode)
+    patient_data = PatientData(scan_id, cr.get_volume_data(), result[0], result[1])
+    
+    if swap_phases(patient_data):
+        patient_data.systole, patient_data.diastole = patient_data.diastole, patient_data.systole
 
     with (open(pickle_file_path, "wb")) as pickleFile:
-        pickle.dump((scan_id, cr.get_volume_data()), pickleFile)
-        pickle.dump(result, pickleFile)
-
+        pickle.dump(patient_data, pickleFile)
 
 
 in_dir = sys.argv[1]
