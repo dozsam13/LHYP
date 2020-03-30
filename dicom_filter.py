@@ -46,12 +46,16 @@ def swap_phases(patient_data):
     diastole_area = cv.contourArea(patient_data.mid_diastole_contours()[comparing_contour_mode].astype(int))
     return diastole_area < systole_area
 
-
 def common_contour_mode(patient_data):
     systole_contours = set(patient_data.mid_systole_contours().keys())
     diastole_contours = patient_data.mid_diastole_contours().keys()
     common_contours = systole_contours.intersection(diastole_contours)
     return next(iter(common_contours))
+
+def calculate_sampling_slices(frame_slice_dict):
+    (start_slice, end_slice) = calculate_contour_slice_window(frame_slice_dict)
+    window_slices = list(filter(lambda slc : slc>=start_slice and slc<=end_slice, next(iter(frame_slice_dict.values()))))
+    return np.percentile(np.array(window_slices), (19,50,83), interpolation='lower')
 
 def create_pickle_for_patient(in_dir, out_dir):
     scan_id = os.path.basename(in_dir)
@@ -81,15 +85,10 @@ def create_pickle_for_patient(in_dir, out_dir):
     pickle_file_path = os.path.join(out_dir, scan_id + ".p")
     create_path_for_file(pickle_file_path)
 
-    (start_slice, end_slice) = calculate_contour_slice_window(frame_slice_dict)
-    
+    sampling_slices = calculate_sampling_slices(frame_slice_dict)
     result = []
     for frm in frame_slice_dict:
         phase = []
-
-        slices = list(filter(lambda slc : slc>=start_slice and slc<=end_slice, frame_slice_dict[frm]))
-        sampling_slices =  np.percentile(np.array(slices), (19,50,83), interpolation='lower')
-
         for slc in sampling_slices:
             image = dr.get_image(slc,frm)
             phase.append(((image.astype('uint8'), contours[slc][frm], (slc,frm))))
@@ -103,7 +102,6 @@ def create_pickle_for_patient(in_dir, out_dir):
 
     with (open(pickle_file_path, "wb")) as pickleFile:
         pickle.dump(patient_data, pickleFile)
-
 
 in_dir = sys.argv[1]
 out_dir = sys.argv[2]

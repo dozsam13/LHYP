@@ -13,7 +13,6 @@ with (open(fn, "rb")) as openfile:
           break
 
 patient_data = objects[0]
-print(type(patient_data.systole))
 for systoleDiastole in patient_data.systole + patient_data.diastole:
   contourDict = systoleDiastole[1]
   image = systoleDiastole[0]
