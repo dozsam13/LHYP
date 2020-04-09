@@ -35,40 +35,35 @@ def left_ventricle_contours(contours):
             left_ventricle_contours[slc][frm] = filtered_contours
     return left_ventricle_contours
 
-def calculate_contour_slice_window(fame_slice_dict):
-    start_slice = max([min(slices) for frame, slices in fame_slice_dict.items()])
-    end_slice = min([max(slices) for frame, slices in fame_slice_dict.items()])
-    return (start_slice, end_slice)
+def frame_of_diastole(frame_slice_dict, contours):
+    frame1 = list(frame_slice_dict.keys())[0]
+    frame2 = list(frame_slice_dict.keys())[1]
+    slice_dict_1 = list(frame_slice_dict.values())[0]
+    slice_dict_2 = list(frame_slice_dict.values())[1]
 
-def swap_phases(patient_data):
-    comparing_contour_mode = common_contour_mode(patient_data)
-    systole_area = cv.contourArea(patient_data.mid_systole_contours()[comparing_contour_mode].astype(int))
-    diastole_area = cv.contourArea(patient_data.mid_diastole_contours()[comparing_contour_mode].astype(int))
-    return diastole_area < systole_area
+    slice_intersection = list(set(slice_dict_1).intersection(set(slice_dict_2)))
+    slice_intersection.sort()
+    mid_slice_index = slice_intersection[len(slice_intersection)//2]
 
-def common_contour_mode(patient_data):
-    systole_contours = set(patient_data.mid_systole_contours().keys())
-    diastole_contours = patient_data.mid_diastole_contours().keys()
-    common_contours = systole_contours.intersection(diastole_contours)
-    return next(iter(common_contours))
+    common_contour_mode = next(iter(set(contours[mid_slice_index][frame1].keys()).intersection(contours[mid_slice_index][frame2])))
 
-def calculate_sampling_slices(frame_slice_dict):
-    (start_slice, end_slice) = calculate_contour_slice_window(frame_slice_dict)
-    window_slices = list(filter(lambda slc : slc>=start_slice and slc<=end_slice, next(iter(frame_slice_dict.values()))))
-    return np.percentile(np.array(window_slices), (19,50,83), interpolation='lower')
+    area1 = cv.contourArea(contours[mid_slice_index][frame1][common_contour_mode].astype(int))
+    area2 = cv.contourArea(contours[mid_slice_index][frame2][common_contour_mode].astype(int))
+    return frame1 if area1 > area2 else frame2
 
-def add_contour_diff_mx_to_diastole(patient_data):
-    diastole_data = patient_data.diastole
-    diastole_data_with_contour_diff_mx = map(lambda e : (e[0],e[1],e[2], create_contour_diff_mx(e[1], e[0].shape)), diastole_data)
-    return list(diastole_data_with_contour_diff_mx)
+def calculate_sampling_slices(frame_slice_dict, diastole_frame):
+    diastole_slice_indexes = frame_slice_dict[diastole_frame]
+    return np.percentile(np.array(diastole_slice_indexes), (19,50,83), interpolation='lower')
 
-
-def create_contour_diff_mx(contours, shape):
-    contour_diff_mx = np.zeros(shape)
-    cv.drawContours(contour_diff_mx, [contours["lp"].astype(np.int32)],0, color=255, thickness=-1)
-    cv.drawContours(contour_diff_mx, [contours["ln"].astype(np.int32)],0, color=0, thickness=-1)
-    contour_diff_mx = cv.resize(contour_diff_mx, (200,200), interpolation = cv.INTER_AREA)
-    return contour_diff_mx
+def create_contour_diff_matricies(sampling_contours, shape):
+    contour_diff_matricies = []
+    for contours in sampling_contours:
+        contour_diff_mx = np.zeros(shape)
+        cv.drawContours(contour_diff_mx, [contours["lp"].astype(np.int32)],0, color=255, thickness=-1)
+        cv.drawContours(contour_diff_mx, [contours["ln"].astype(np.int32)],0, color=0, thickness=-1)
+        contour_diff_mx = cv.resize(contour_diff_mx, (200,200), interpolation = cv.INTER_AREA)
+        contour_diff_matricies.append(contour_diff_mx.astype('uint8'))
+    return contour_diff_matricies
 
 def read_pathology(meta_txt):
     pathology = ""
@@ -108,23 +103,17 @@ def create_pickle_for_patient(in_dir, out_dir):
     pickle_file_path = os.path.join(out_dir, scan_id + ".p")
     create_path_for_file(pickle_file_path)
 
-    sampling_slices = calculate_sampling_slices(frame_slice_dict)
-    result = []
-    for frm in frame_slice_dict:
-        phase = []
-        for slc in sampling_slices:
-            image = dr.get_image(slc,frm)
-            phase.append((image.astype('uint8'), contours[slc][frm], (slc,frm)))
-           
-        result.append(phase)
-
+    diastole_frame = frame_of_diastole(frame_slice_dict, contours)
+    sampling_slices = calculate_sampling_slices(frame_slice_dict, diastole_frame)
+    sampling_contours = []
+    for slice_index in sampling_slices:
+        shape = dr.get_image(slice_index,diastole_frame).shape
+        sampling_contours.append(contours[slice_index][diastole_frame])
     pathology = read_pathology(meta_txt)
-    patient_data = PatientData(scan_id, pathology, cr.get_volume_data(), result[0], result[1])
-    
-    if swap_phases(patient_data):
-        patient_data.systole, patient_data.diastole = patient_data.diastole, patient_data.systole
-
-    patient_data.diastole = add_contour_diff_mx_to_diastole(patient_data)
+    shape = dr.get_image(sampling_slices[0],diastole_frame).shape
+    contour_diff_matricies = create_contour_diff_matricies(sampling_contours, shape)
+    print(type(contour_diff_matricies))
+    patient_data = PatientData(scan_id, pathology, cr.get_volume_data(), contour_diff_matricies)
 
     with (open(pickle_file_path, "wb")) as pickleFile:
         pickle.dump(patient_data, pickleFile)
