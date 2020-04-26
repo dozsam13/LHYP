@@ -61,7 +61,7 @@ def create_contour_diff_matricies(sampling_contours, shape):
         contour_diff_mx = np.zeros(shape)
         cv.drawContours(contour_diff_mx, [contours["lp"].astype(np.int32)],0, color=255, thickness=-1)
         cv.drawContours(contour_diff_mx, [contours["ln"].astype(np.int32)],0, color=0, thickness=-1)
-        contour_diff_mx = cv.resize(contour_diff_mx, (200,200), interpolation = cv.INTER_AREA)
+        contour_diff_mx = cv.resize(contour_diff_mx, (224,224), interpolation = cv.INTER_AREA)
         contour_diff_matricies.append(contour_diff_mx.astype('uint8'))
     return contour_diff_matricies
 
