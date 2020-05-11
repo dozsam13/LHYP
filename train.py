@@ -10,6 +10,21 @@ from datetime import datetime
 import sys
 import matplotlib.pyplot as plt
 
+def calc_accurcy():
+    counter = 0
+    correctly_labeled = 0
+    for sample in loader_test:
+        counter += 1
+        image = sample['image']
+        target = sample['target']
+        predicted = torch.argmax(model(image))
+        if target[0][predicted] == 1:
+            if (counter%500 == 0):
+              print(predicted.cpu().detach().numpy(), target[0].cpu().detach().numpy())
+            correctly_labeled += 1
+
+    print("Correctly labeled {} out of {}".format(correctly_labeled, counter))
+
 def split_data(ratio1, ratio2, data_x, data_y):
 	n = len(data_x)
 	x_1 = data_x[:int(n*ratio1)]
@@ -20,30 +35,30 @@ def split_data(ratio1, ratio2, data_x, data_y):
 	y_3 = data_y[int(n*ratio2):]
 	return ((x_1, y_1), (x_2, y_2), (x_3, y_3))
 
-def validation():
+def calculate_loss(loader):
     loss_sum = 0.0
     counter = 0
-    for sample in loader_validation:
+    for sample in loader:
         counter += 1
         image = sample['image']
         target = sample['target']
         predicted = model(image)
-        loss = criterion(predicted.reshape(-1), target)
-        loss_sum += loss.detach().numpy() / len(sample)
+        loss = criterion(predicted, torch.max(target, 1)[1])
+        loss_sum += loss.cpu().detach().numpy() / len(sample)
         del loss
 
     return loss_sum / counter
 
 batch_size = 1000
-device = torch.device("cuda")
+device = torch.device("cpu")
 model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=False)
 model = nn.Sequential(
     model,
-    nn.Linear(1000, 1),
-    nn.Sigmoid()
+    nn.Linear(1000, len(DataReader.possible_pathologies)),
+    nn.ReLU()
 )
 model.to(device)
-criterion = nn.BCELoss()
+criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters())
 
 in_dir = sys.argv[1]
@@ -71,19 +86,21 @@ for epoch in range(epochs):
         target = sample['target']
 
         predicted = model(image)
-        loss = criterion(predicted.reshape(-1), target)
+        loss = criterion(predicted, torch.max(target, 1)[1])
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        trainloss_for_epoch += loss.detach().numpy() / len(sample)
+        trainloss_for_epoch += loss.cpu().detach().numpy() / len(sample)
     trainloss_for_epoch /= counter
-    validationloss_for_epoch = validation()
+    validationloss_for_epoch = calculate_loss(loader_validation)
     train_losses.append(trainloss_for_epoch)
     validation_losses.append(validationloss_for_epoch)
 
     print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch, validationloss_for_epoch))
+
+calc_accurcy()
 print("Training has finished.")
 plt.plot(train_losses, label='train_loss')
 plt.plot(validation_losses, label='validation_loss')
