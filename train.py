@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
-from hypertrophy_classifier import HypertrophyClassifier
 from data_reader import DataReader
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
+from torch.utils.data import DataLoader
 from hypertrophy_dataset import HypertrophyDataset
 import torch.optim as optim
 from datetime import datetime
@@ -12,14 +10,14 @@ import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import LambdaLR
 
 
-def calc_accurcy():
+def calc_accuracy():
     counter = 0
     correctly_labeled = 0
     for sample in loader_test:
         counter += 1
         image = sample['image']
         target = sample['target']
-        predicted = torch.argmax(model(image))
+        predicted = torch.argmax(model(image), -1)
         if target[0][predicted] == 1:
             if counter % 500 == 0:
                 print(predicted.cpu().detach().numpy(), target[0].cpu().detach().numpy())
@@ -54,7 +52,7 @@ def calculate_loss(loader):
     return loss_sum / counter
 
 
-batch_size = 1000
+batch_size = 40
 device = torch.device("cuda")
 model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=False)
 model = nn.Sequential(
@@ -76,7 +74,7 @@ loader_train = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
 loader_validation = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
-loader_test = DataLoader(dataset, batch_size)
+loader_test = DataLoader(dataset, 1)
 
 epochs = 10
 train_losses = []
@@ -110,7 +108,7 @@ for epoch in range(epochs):
     print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch,
                                                                               validationloss_for_epoch))
 
-calc_accurcy()
+calc_accuracy()
 print("Training has finished.")
 plt.plot(train_losses, label='train_loss')
 plt.plot(validation_losses, label='validation_loss')
