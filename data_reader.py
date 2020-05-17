@@ -21,10 +21,10 @@ class DataReader:
               multi_channel_picture = np.expand_dims(patient_data.contour_diff_matricies[0], axis=0)
               multi_channel_picture = np.append(multi_channel_picture, np.expand_dims(patient_data.contour_diff_matricies[1], axis=0), axis=0)
               multi_channel_picture = np.append(multi_channel_picture, np.expand_dims(patient_data.contour_diff_matricies[2], axis=0), axis=0)
-              pathology_vector = [0]*len(DataReader.possible_pathologies)
-              pathology_vector[DataReader.possible_pathologies.index(patient_data.pathology)] = 1
+              #pathology_vector = [0]*len(DataReader.possible_pathologies)
+              #pathology_vector[DataReader.possible_pathologies.index(patient_data.pathology)] = 1
               self.x.append(multi_channel_picture)
-              self.y.append(pathology_vector)
+              self.y.append(DataReader.possible_pathologies.index(patient_data.pathology))
             else:
               print(patient_file_path)
           except EOFError:

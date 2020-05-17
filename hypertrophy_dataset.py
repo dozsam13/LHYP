@@ -10,8 +10,7 @@ class HypertrophyDataset(Dataset):
         self.preprocess = transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            transforms.ToTensor()
         ])
     
     def __len__(self):
@@ -20,6 +19,6 @@ class HypertrophyDataset(Dataset):
     def __getitem__(self, index):
         sample = {
             'image': torch.tensor(self.images[index], dtype=torch.float, device=self.device),
-            'target': torch.tensor(self.targets[index], dtype=torch.float, device=self.device)
+            'target': torch.tensor(self.targets[index], dtype=torch.long, device=self.device)
         }
         return sample

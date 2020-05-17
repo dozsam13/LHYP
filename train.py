@@ -51,7 +51,7 @@ def calculate_loss(loader):
         image = sample['image']
         target = sample['target']
         predicted = model(image)
-        loss = criterion(predicted, torch.max(target, 1)[1])
+        loss = criterion(predicted, target)
         loss_sum += loss.cpu().detach().numpy() / len(sample)
         del loss
 
@@ -63,8 +63,8 @@ device = torch.device("cuda")
 model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
 model = nn.Sequential(
     model,
+    nn.ReLU(),
     nn.Linear(1000, len(DataReader.possible_pathologies)),
-    nn.ReLU()
 )
 model.to(device)
 criterion = nn.CrossEntropyLoss()
@@ -95,7 +95,9 @@ for epoch in range(epochs):
         target = sample['target']
 
         predicted = model(image)
-        loss = criterion(predicted, torch.max(target, 1)[1])
+        print(predicted)
+        print(target)
+        loss = criterion(predicted, target)
 
         optimizer.zero_grad()
         loss.backward()
