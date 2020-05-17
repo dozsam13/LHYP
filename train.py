@@ -7,23 +7,29 @@ import torch.optim as optim
 from datetime import datetime
 import sys
 import matplotlib.pyplot as plt
-from torch.optim.lr_scheduler import LambdaLR
 
 
 def calc_accuracy():
     counter = 0
     correctly_labeled = 0
+    topk_counter = 0
     for sample in loader_test:
         counter += 1
         image = sample['image']
         target = sample['target']
-        predicted = torch.argmax(model(image), -1)
+        res = model(image)
+        predicted = torch.argmax(res, -1)
+        target_index = torch.argmax(target)
+        topk = torch.topk(res, 3)[1]
         if target[0][predicted] == 1:
-            if counter % 500 == 0:
-                print(predicted.cpu().detach().numpy(), target[0].cpu().detach().numpy())
             correctly_labeled += 1
+            topk_counter += 1
+        elif target_index in topk:
+            topk_counter += 1
+        print(torch.topk(res, 10)[1])
 
-    print("Correctly labeled {} out of {}".format(correctly_labeled, counter))
+    print("Accuracy: {}".format(correctly_labeled/ counter))
+    print("TopK: {}".format(topk_counter/ counter))
 
 
 def split_data(ratio1, ratio2, data_x, data_y):
@@ -52,17 +58,17 @@ def calculate_loss(loader):
     return loss_sum / counter
 
 
-batch_size = 40
+batch_size = 210
 device = torch.device("cuda")
-model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=False)
+model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
 model = nn.Sequential(
     model,
     nn.Linear(1000, len(DataReader.possible_pathologies)),
-    nn.Sigmoid()
+    nn.ReLU()
 )
 model.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters())
+optimizer = optim.Adam(model.parameters(), lr=0.0015)
 
 in_dir = sys.argv[1]
 data_reader = DataReader(in_dir)
@@ -76,12 +82,9 @@ loader_validation = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
 loader_test = DataLoader(dataset, 1)
 
-epochs = 10
+epochs = 25
 train_losses = []
 validation_losses = []
-#lambda1 = lambda epoch: epoch
-lambda2 = lambda epoch: 0.95 ** epoch
-#scheduler = LambdaLR(optimizer, lr_lambda=lambda2)
 print("Training has started at {}".format(datetime.now()))
 for epoch in range(epochs):
     trainloss_for_epoch = 0.0
@@ -94,7 +97,6 @@ for epoch in range(epochs):
         predicted = model(image)
         loss = criterion(predicted, torch.max(target, 1)[1])
 
-        #scheduler.step()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -105,12 +107,14 @@ for epoch in range(epochs):
     train_losses.append(trainloss_for_epoch)
     validation_losses.append(validationloss_for_epoch)
 
-    print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch,
+    if epoch % 10 == 0:
+        print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch,
                                                                               validationloss_for_epoch))
 
+plt.clf()
 calc_accuracy()
 print("Training has finished.")
 plt.plot(train_losses, label='train_loss')
 plt.plot(validation_losses, label='validation_loss')
 plt.legend()
-plt.savefig("train_valid.png")
+plt.savefig("miafasz.png")
