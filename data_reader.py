@@ -23,6 +23,7 @@ class DataReader:
               multi_channel_picture = np.append(multi_channel_picture, np.expand_dims(patient_data.contour_diff_matricies[2], axis=0), axis=0)
               #pathology_vector = [0]*len(DataReader.possible_pathologies)
               #pathology_vector[DataReader.possible_pathologies.index(patient_data.pathology)] = 1
+              print(multi_channel_picture.shape)
               self.x.append(multi_channel_picture)
               if patient_data.pathology in DataReader.possible_pathologies:
                 self.y.append(DataReader.possible_pathologies.index(patient_data.pathology))

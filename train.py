@@ -8,6 +8,7 @@ from datetime import datetime
 import sys
 import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
+import numpy as np
 
 def calc_accuracy():
     counter = 0
@@ -20,9 +21,8 @@ def calc_accuracy():
         res = model(image)
         predicted = torch.argmax(res)
         print("-----------------------------------")
-        print(predicted)
         print(target)
-        print(torch.topk(res, 10)[1])
+        print(torch.topk(res, 3)[1])
         top3 = torch.topk(res, 3)[1]
         if target == predicted:
             correctly_labeled += 1
@@ -61,7 +61,7 @@ def calculate_loss(loader):
     return loss_sum / counter
 
 
-batch_size = 210
+batch_size = 50
 device = torch.device("cuda")
 model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
 model = nn.Sequential(
@@ -71,7 +71,7 @@ model = nn.Sequential(
 )
 model.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=6)
+optimizer = optim.Adam(model.parameters(), lr=0.005, weight_decay=0)
 
 in_dir = sys.argv[1]
 data_reader = DataReader(in_dir)
@@ -85,11 +85,12 @@ loader_validation = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
 loader_test = DataLoader(dataset, 1)
 
-epochs = 25
+epochs = 100
 train_losses = []
 validation_losses = []
 scheduler = StepLR(optimizer, step_size=6, gamma=0.8)
 print("Training has started at {}".format(datetime.now()))
+c = 0
 for epoch in range(epochs):
     trainloss_for_epoch = 0.0
     counter = 0
@@ -97,10 +98,14 @@ for epoch in range(epochs):
         counter += 1
         image = sample['image']
         target = sample['target']
-
         predicted = model(image)
         loss = criterion(predicted, target)
-
+        if c == 0:
+          c += 1
+          print("EEEZ-------------------------------------")
+          print(np.count_nonzero(npimg != 0.0))
+          print(npimg.shape)
+          print("-------------------------------------")
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -112,8 +117,8 @@ for epoch in range(epochs):
     train_losses.append(trainloss_for_epoch)
     validation_losses.append(validationloss_for_epoch)
 
-    #if epoch % 5 == 0:
-    print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch,
+    if epoch % 5 == 0:
+      print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch,
                                                                               validationloss_for_epoch))
 
 plt.clf()
