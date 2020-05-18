@@ -1,4 +1,3 @@
-import sys
 import pickle
 import os
 import numpy as np
@@ -6,7 +5,8 @@ import cv2 as cv
 
 
 class DataReader:
-  possible_pathologies = ['U18_m', 'Amyloidosis', 'U18_f', 'EMF', 'Fabry', 'adult_m_sport', 'Aortastenosis', 'Normal', 'HCM', 'adult_f_sport']
+  #possible_pathologies = ['U18_m', 'Amyloidosis', 'U18_f', 'EMF', 'Fabry', 'adult_m_sport', 'Aortastenosis', 'Normal', 'HCM', 'adult_f_sport']
+  possible_pathologies = ['Normal', 'HCM']
   def __init__(self, path):
     patient_file_paths = list(map(lambda f : os.path.join(path, f), os.listdir(path)))
     self.x = []
@@ -24,7 +24,10 @@ class DataReader:
               #pathology_vector = [0]*len(DataReader.possible_pathologies)
               #pathology_vector[DataReader.possible_pathologies.index(patient_data.pathology)] = 1
               self.x.append(multi_channel_picture)
-              self.y.append(DataReader.possible_pathologies.index(patient_data.pathology))
+              if patient_data.pathology in DataReader.possible_pathologies:
+                self.y.append(DataReader.possible_pathologies.index(patient_data.pathology))
+              else:
+                self.y.append(2)
             else:
               print(patient_file_path)
           except EOFError:

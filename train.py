@@ -67,11 +67,11 @@ model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
 model = nn.Sequential(
     model,
     nn.ReLU(),
-    nn.Linear(1000, len(DataReader.possible_pathologies)),
+    nn.Linear(1000, len(DataReader.possible_pathologies) + 1),
 )
 model.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.0007, weight_decay=5.5)
+optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=6)
 
 in_dir = sys.argv[1]
 data_reader = DataReader(in_dir)
@@ -85,10 +85,10 @@ loader_validation = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
 loader_test = DataLoader(dataset, 1)
 
-epochs = 50
+epochs = 25
 train_losses = []
 validation_losses = []
-scheduler = StepLR(optimizer, step_size=7, gamma=0.8)
+scheduler = StepLR(optimizer, step_size=6, gamma=0.8)
 print("Training has started at {}".format(datetime.now()))
 for epoch in range(epochs):
     trainloss_for_epoch = 0.0
@@ -106,7 +106,7 @@ for epoch in range(epochs):
         optimizer.step()
 
         trainloss_for_epoch += loss.cpu().detach().numpy() / len(sample)
- #   scheduler.step()
+    scheduler.step()
     trainloss_for_epoch /= counter
     validationloss_for_epoch = calculate_loss(loader_validation)
     train_losses.append(trainloss_for_epoch)
@@ -122,4 +122,4 @@ print("Training has finished.")
 plt.plot(train_losses, label='train_loss')
 plt.plot(validation_losses, label='validation_loss')
 plt.legend()
-plt.savefig("miafasz.png")
+plt.savefig("train_dev_loss.png")
