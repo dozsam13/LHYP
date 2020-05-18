@@ -85,7 +85,7 @@ loader_validation = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
 loader_test = DataLoader(dataset, 1)
 
-epochs = 100
+epochs = 1
 train_losses = []
 validation_losses = []
 scheduler = StepLR(optimizer, step_size=6, gamma=0.8)
@@ -102,6 +102,7 @@ for epoch in range(epochs):
         loss = criterion(predicted, target)
         if c == 0:
           c += 1
+          npimg = image.cpu().detach().numpy()
           print("EEEZ-------------------------------------")
           print(np.count_nonzero(npimg != 0.0))
           print(npimg.shape)
