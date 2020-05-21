@@ -10,11 +10,11 @@ import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
 
-def calc_accuracy():
+def calc_accuracy(loader):
     counter = 0
     correctly_labeled = 0
     topk_counter = 0
-    for sample in loader_test:
+    for sample in loader:
         counter += 1
         image = sample['image']
         target = sample['target']
@@ -23,11 +23,11 @@ def calc_accuracy():
         print("-----------------------------------")
         print(target)
         print(torch.topk(res, 3)[1])
-        top3 = torch.topk(res, 3)[1]
+        top2 = torch.topk(res, 2)[1]
         if target == predicted:
             correctly_labeled += 1
             topk_counter += 1
-        elif predicted in top3:
+        elif predicted in top2:
             topk_counter += 1
 
     print("Accuracy: {}".format(correctly_labeled/ counter))
@@ -94,6 +94,7 @@ c = 0
 for epoch in range(epochs):
     trainloss_for_epoch = 0.0
     counter = 0
+    c = 0
     for index, sample in enumerate(loader_train):
         counter += 1
         image = sample['image']
@@ -123,7 +124,7 @@ for epoch in range(epochs):
                                                                               validationloss_for_epoch))
 
 plt.clf()
-calc_accuracy()
+calc_accuracy(loader_test)
 print("Training has finished.")
 plt.plot(train_losses, label='train_loss')
 plt.plot(validation_losses, label='validation_loss')
