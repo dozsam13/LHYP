@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
 
-def calc_accuracy(loader):
+def calc_accuracy(loader, do_log):
     counter = 0
     correctly_labeled = 0
     topk_counter = 0
@@ -20,14 +20,18 @@ def calc_accuracy(loader):
         target = sample['target']
         res = model(image)
         predicted = torch.argmax(res)
-        print("-----------------------------------")
-        print(target)
-        print(torch.topk(res, 3)[1])
+        npimg = image.cpu().detach().numpy()
+        if do_log:
+            print("------------------------------------------------------")
+            print(np.count_nonzero(npimg != 0.0))
+            print(npimg.shape)
+            print(target)
+            print(torch.topk(res, 3)[1])
         top2 = torch.topk(res, 2)[1]
         if target == predicted:
             correctly_labeled += 1
             topk_counter += 1
-        elif predicted in top2:
+        elif target in top2.tolist()[0]:
             topk_counter += 1
 
     print("Accuracy: {}".format(correctly_labeled/ counter))
@@ -37,13 +41,18 @@ def calc_accuracy(loader):
 
 def split_data(ratio1, ratio2, data_x, data_y):
     n = len(data_x)
-    x_1 = data_x[:int(n * ratio1)]
-    y_1 = data_y[:int(n * ratio1)]
-    x_2 = data_x[int(n * ratio1):int(n * ratio2)]
-    y_2 = data_y[int(n * ratio1):int(n * ratio2)]
-    x_3 = data_x[int(n * ratio2):]
-    y_3 = data_y[int(n * ratio2):]
-    return (x_1, y_1), (x_2, y_2), (x_3, y_3)
+    indices = list(range(len(data_x)))
+    np.random.shuffle(indices)
+    train_indices = indices[:int(n * ratio1)]
+    dev_indices = indices[int(n * ratio1):int(n * ratio2)]
+    test_indices = indices[int(n * ratio1):int(n * ratio2)]
+    train_x = [data_x[idx] for idx in train_indices]
+    train_y = [data_y[idx] for idx in train_indices]
+    dev_x = [data_x[idx] for idx in dev_indices]
+    dev_y = [data_y[idx] for idx in dev_indices]
+    test_x = [data_x[idx] for idx in test_indices]
+    test_y = [data_y[idx] for idx in test_indices]
+    return (train_x, train_y), (dev_x, dev_y), (test_x, test_y)
 
 
 def calculate_loss(loader):
@@ -56,6 +65,7 @@ def calculate_loss(loader):
         predicted = model(image)
         loss = criterion(predicted, target)
         loss_sum += loss.cpu().detach().numpy() / len(sample)
+        print(len(sample))
         del loss
 
     return loss_sum / counter
@@ -71,7 +81,7 @@ model = nn.Sequential(
 )
 model.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.005, weight_decay=0)
+optimizer = optim.Adam(model.parameters(), lr=0.005, weight_decay=0.5)
 
 in_dir = sys.argv[1]
 data_reader = DataReader(in_dir)
@@ -80,12 +90,13 @@ data_reader = DataReader(in_dir)
 
 dataset = HypertrophyDataset(train_data[0], train_data[1], device)
 loader_train = DataLoader(dataset, batch_size)
+loader_train_accuracy = DataLoader(dataset, 1)
 dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
 loader_validation = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
 loader_test = DataLoader(dataset, 1)
 
-epochs = 1
+epochs = 40
 train_losses = []
 validation_losses = []
 scheduler = StepLR(optimizer, step_size=6, gamma=0.8)
@@ -101,18 +112,12 @@ for epoch in range(epochs):
         target = sample['target']
         predicted = model(image)
         loss = criterion(predicted, target)
-        if c == 0:
-          c += 1
-          npimg = image.cpu().detach().numpy()
-          print("EEEZ-------------------------------------")
-          print(np.count_nonzero(npimg != 0.0))
-          print(npimg.shape)
-          print("-------------------------------------")
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
         trainloss_for_epoch += loss.cpu().detach().numpy() / len(sample)
+    calc_accuracy(loader_train_accuracy, False)
     scheduler.step()
     trainloss_for_epoch /= counter
     validationloss_for_epoch = calculate_loss(loader_validation)
@@ -124,7 +129,7 @@ for epoch in range(epochs):
                                                                               validationloss_for_epoch))
 
 plt.clf()
-calc_accuracy(loader_test)
+calc_accuracy(loader_test, True)
 print("Training has finished.")
 plt.plot(train_losses, label='train_loss')
 plt.plot(validation_losses, label='validation_loss')
