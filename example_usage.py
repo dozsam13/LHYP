@@ -4,7 +4,6 @@
 from con_reader import CONreaderVM
 from dicom_reader import DCMreaderVM
 from con2img import draw_contourmtcs2image as draw
-import data.PatientData as PatientData
 
 
 image_folder = 'C:\\dev\\LHYP\\sample\\13457546AMR801\\sa\\images'

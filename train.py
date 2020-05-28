@@ -3,12 +3,14 @@ import torch.nn as nn
 from data_reader import DataReader
 from torch.utils.data import DataLoader
 from hypertrophy_dataset import HypertrophyDataset
+from hypertrophy_classifier import HypertrophyClassifier
 import torch.optim as optim
 from datetime import datetime
 import sys
 import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
+import itertools
 
 def calc_accuracy(loader, do_log):
     counter = 0
@@ -20,13 +22,11 @@ def calc_accuracy(loader, do_log):
         target = sample['target']
         res = model(image)
         predicted = torch.argmax(res)
-        npimg = image.cpu().detach().numpy()
         if do_log:
             print("------------------------------------------------------")
-            print(np.count_nonzero(npimg != 0.0))
-            print(npimg.shape)
             print(target)
             print(torch.topk(res, 3)[1])
+            print(res)
         top2 = torch.topk(res, 2)[1]
         if target == predicted:
             correctly_labeled += 1
@@ -34,24 +34,61 @@ def calc_accuracy(loader, do_log):
         elif target in top2.tolist()[0]:
             topk_counter += 1
 
-    print("Accuracy: {}".format(correctly_labeled/ counter))
-    print("TopK: {}".format(topk_counter/ counter))
-    print(topk_counter, counter)
+    #print("Accuracy: {}".format(correctly_labeled/ counter))
+    #print("TopK: {}".format(topk_counter/ counter))
+    #print(topk_counter, counter)
+    return correctly_labeled/ counter
 
+def create_data_for_confusion_mx(loader):
+    counters = [[0,0,0], [0,0,0], [0,0,0]]
+    counter = 0
+    for sample in loader:
+        counter += 1
+        image = sample['image']
+        target = sample['target']
+        res = model(image)
+        predicted = torch.argmax(res)
+        counters[target][predicted] += 1
+    return counters, counter
+
+def plot_confusion_matrix(loader):
+    cmap=plt.cm.Blues
+    cm = np.array(create_data_for_confusion_mx(loader)[0]).astype('float')
+    classes = ["Normal", "HCM", "Other"]
+
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title('Confusion matrix')
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center", color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.savefig("confusion.png")
 
 def split_data(ratio1, ratio2, data_x, data_y):
     n = len(data_x)
-    indices = list(range(len(data_x)))
+    test_x = data_x[int(n * ratio2):]
+    test_y = data_y[int(n * ratio2):]
+    data_dev_train_x = data_x[:int(n * ratio2)]
+    data_dev_train_y = data_y[:int(n * ratio2)]
+    n = len(data_dev_train_x)
+    indices = list(range(len(data_dev_train_x)))
     np.random.shuffle(indices)
     train_indices = indices[:int(n * ratio1)]
     dev_indices = indices[int(n * ratio1):int(n * ratio2)]
-    test_indices = indices[int(n * ratio1):int(n * ratio2)]
-    train_x = [data_x[idx] for idx in train_indices]
-    train_y = [data_y[idx] for idx in train_indices]
-    dev_x = [data_x[idx] for idx in dev_indices]
-    dev_y = [data_y[idx] for idx in dev_indices]
-    test_x = [data_x[idx] for idx in test_indices]
-    test_y = [data_y[idx] for idx in test_indices]
+    train_x = [data_dev_train_x[idx] for idx in train_indices]
+    train_y = [data_dev_train_y[idx] for idx in train_indices]
+    dev_x = [data_dev_train_x[idx] for idx in dev_indices]
+    dev_y = [data_dev_train_y[idx] for idx in dev_indices]
+
     return (train_x, train_y), (dev_x, dev_y), (test_x, test_y)
 
 
@@ -64,24 +101,26 @@ def calculate_loss(loader):
         target = sample['target']
         predicted = model(image)
         loss = criterion(predicted, target)
-        loss_sum += loss.cpu().detach().numpy() / len(sample)
-        print(len(sample))
+        loss_sum += loss.cpu().detach().numpy()
         del loss
 
     return loss_sum / counter
 
 
-batch_size = 50
-device = torch.device("cuda")
-model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
-model = nn.Sequential(
-    model,
-    nn.ReLU(),
-    nn.Linear(1000, len(DataReader.possible_pathologies) + 1),
-)
+batch_size = 30
+device = torch.device("cpu")
+model = HypertrophyClassifier()
+#model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
+#model = nn.Sequential(
+#    model,
+#    nn.ReLU(),
+#    nn.Linear(1000, len(DataReader.possible_pathologies) + 1)
+#)
+
+
 model.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.005, weight_decay=0.5)
+optimizer = optim.Adadelta(model.parameters(), lr=0.005, weight_decay=3.0)
 
 in_dir = sys.argv[1]
 data_reader = DataReader(in_dir)
@@ -96,42 +135,47 @@ loader_validation = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
 loader_test = DataLoader(dataset, 1)
 
-epochs = 40
+epochs = 3
 train_losses = []
 validation_losses = []
-scheduler = StepLR(optimizer, step_size=6, gamma=0.8)
+train_accuracies = []
+test_accuracies = []
+scheduler = StepLR(optimizer, step_size=20, gamma=0.7)
 print("Training has started at {}".format(datetime.now()))
-c = 0
 for epoch in range(epochs):
     trainloss_for_epoch = 0.0
     counter = 0
-    c = 0
     for index, sample in enumerate(loader_train):
         counter += 1
         image = sample['image']
         target = sample['target']
+
         predicted = model(image)
         loss = criterion(predicted, target)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-        trainloss_for_epoch += loss.cpu().detach().numpy() / len(sample)
-    calc_accuracy(loader_train_accuracy, False)
+        trainloss_for_epoch += loss.cpu().detach().numpy()
     scheduler.step()
     trainloss_for_epoch /= counter
     validationloss_for_epoch = calculate_loss(loader_validation)
     train_losses.append(trainloss_for_epoch)
     validation_losses.append(validationloss_for_epoch)
-
-    if epoch % 5 == 0:
-      print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch,
-                                                                              validationloss_for_epoch))
+    if epoch % 10 == 0:
+      print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch, validationloss_for_epoch))
+      train_accuracies.append(calc_accuracy(loader_train_accuracy, False))
+      test_accuracies.append(calc_accuracy(loader_test, False))
 
 plt.clf()
-calc_accuracy(loader_test, True)
 print("Training has finished.")
 plt.plot(train_losses, label='train_loss')
 plt.plot(validation_losses, label='validation_loss')
 plt.legend()
 plt.savefig("train_dev_loss.png")
+plt.clf()
+plt.plot(test_accuracies, label='test accuracy')
+plt.plot(train_accuracies, label='train accuracy')
+plt.legend()
+plt.savefig("accuracy.png")
+plt.clf()
+plot_confusion_matrix(loader_test)
