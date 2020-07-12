@@ -35,7 +35,7 @@ def left_ventricle_contours(contours):
             left_ventricle_contours[slc][frm] = filtered_contours
     return left_ventricle_contours
 
-def frame_of_diastole(frame_slice_dict, contours):
+def order_frames(frame_slice_dict, contours):
     frame1 = list(frame_slice_dict.keys())[0]
     frame2 = list(frame_slice_dict.keys())[1]
     slice_dict_1 = list(frame_slice_dict.values())[0]
@@ -49,27 +49,20 @@ def frame_of_diastole(frame_slice_dict, contours):
 
     area1 = cv.contourArea(contours[mid_slice_index][frame1][common_contour_mode].astype(int))
     area2 = cv.contourArea(contours[mid_slice_index][frame2][common_contour_mode].astype(int))
-    return frame1 if area1 > area2 else frame2
+    return (frame2, frame1) if area1 > area2 else (frame1, frame2)
 
 def calculate_sampling_slices(frame_slice_dict, diastole_frame):
     diastole_slice_indexes = frame_slice_dict[diastole_frame]
     return np.percentile(np.array(diastole_slice_indexes), (19,50,83), interpolation='lower')
-
-def create_contour_diff_matricies(sampling_contours, shape):
-    contour_diff_matricies = []
-    for contours in sampling_contours:
-        contour_diff_mx = np.zeros(shape)
-        cv.drawContours(contour_diff_mx, [contours["lp"].astype(np.int32)],0, color=255, thickness=-1)
-        cv.drawContours(contour_diff_mx, [contours["ln"].astype(np.int32)],0, color=0, thickness=-1)
-        contour_diff_mx = cv.resize(contour_diff_mx, (224,224), interpolation = cv.INTER_AREA)
-        contour_diff_matricies.append(contour_diff_mx.astype('uint8'))
-    return contour_diff_matricies
 
 def read_pathology(meta_txt):
     pathology = ""
     with open(meta_txt, "r") as f:
         pathology = f.readline().split(": ")[1]
     return pathology.rstrip()
+
+def resize_matrices(matrices):
+    return list(map(lambda x: cv.resize(x, (224,224), interpolation = cv.INTER_AREA) , matrices))
 
 def create_pickle_for_patient(in_dir, out_dir):
     scan_id = os.path.basename(in_dir)
@@ -103,16 +96,18 @@ def create_pickle_for_patient(in_dir, out_dir):
     pickle_file_path = os.path.join(out_dir, scan_id + ".p")
     create_path_for_file(pickle_file_path)
 
-    diastole_frame = frame_of_diastole(frame_slice_dict, contours)
+    (systole_frame, diastole_frame) = order_frames(frame_slice_dict, contours)
     sampling_slices = calculate_sampling_slices(frame_slice_dict, diastole_frame)
-    sampling_contours = []
+    systole_frames = []
+    diastole_frames = []
     for slice_index in sampling_slices:
-        shape = dr.get_image(slice_index,diastole_frame).shape
-        sampling_contours.append(contours[slice_index][diastole_frame])
+        systole_frames.append(dr.get_image(slice_index, systole_frame).astype('uint8'))
+        diastole_frames.append(dr.get_image(slice_index, diastole_frame).astype('uint8'))
+
     pathology = read_pathology(meta_txt)
-    shape = dr.get_image(sampling_slices[0],diastole_frame).shape
-    contour_diff_matricies = create_contour_diff_matricies(sampling_contours, shape)
-    patient_data = PatientData(scan_id, pathology, cr.get_volume_data(), contour_diff_matricies)
+    systole_frames = resize_matrices(systole_frames)
+    diastole_frames = resize_matrices(diastole_frames)
+    patient_data = PatientData(scan_id, pathology, cr.get_volume_data(), systole_frames, diastole_frames)
 
     with (open(pickle_file_path, "wb")) as pickleFile:
         pickle.dump(patient_data, pickleFile)

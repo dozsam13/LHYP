@@ -1,8 +1,6 @@
 import sys
 import pickle
-from domain.patient_data import PatientData
 import cv2
-import numpy as np
 
 fn = sys.argv[1]
 patient_data = None
@@ -13,6 +11,9 @@ with (open(fn, "rb")) as openfile:
       except EOFError:
           break
 
-cv2.imwrite( "bottom.jpg", patient_data.contour_diff_matricies[0] );
-cv2.imwrite( "mid.jpg", patient_data.contour_diff_matricies[1] );
-cv2.imwrite( "top.jpg", patient_data.contour_diff_matricies[2] );
+cv2.imwrite( "s_bottom.jpg", patient_data.systole_slices[0] );
+cv2.imwrite( "s_mid.jpg", patient_data.systole_slices[1] );
+cv2.imwrite( "s_top.jpg", patient_data.systole_slices[2] );
+cv2.imwrite( "d_bottom.jpg", patient_data.diastole_slices[0] );
+cv2.imwrite( "d_mid.jpg", patient_data.diastole_slices[1] );
+cv2.imwrite( "d_top.jpg", patient_data.diastole_slices[2] );

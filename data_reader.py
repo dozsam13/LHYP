@@ -34,4 +34,3 @@ class DataReader:
   @staticmethod
   def __resize(picture):
     return cv.resize(picture, (224,224), interpolation = cv.INTER_AREA)
-    
