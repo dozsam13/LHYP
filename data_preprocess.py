@@ -53,7 +53,7 @@ def order_frames(frame_slice_dict, contours):
 
 def calculate_sampling_slices(frame_slice_dict, diastole_frame):
     diastole_slice_indexes = frame_slice_dict[diastole_frame]
-    return np.percentile(np.array(diastole_slice_indexes), (19,50,83), interpolation='lower')
+    return np.percentile(np.array(diastole_slice_indexes), (30,55,90), interpolation='lower')
 
 def read_pathology(meta_txt):
     pathology = ""
@@ -81,7 +81,7 @@ def create_pickle_for_patient(in_dir, out_dir):
         return
 
     dr = DCMreaderVM(image_folder)
-    if dr.num_frames == 0 and dr.num_frames == 0 or dr.broken:
+    if dr.num_frames == 0 or dr.num_slices == 0 or dr.broken:
         logger.error("Could not create pickle file for {}".format(scan_id))
         return
 
