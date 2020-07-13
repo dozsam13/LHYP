@@ -53,7 +53,7 @@ def order_frames(frame_slice_dict, contours):
 
 def calculate_sampling_slices(frame_slice_dict, diastole_frame):
     diastole_slice_indexes = frame_slice_dict[diastole_frame]
-    return np.percentile(np.array(diastole_slice_indexes), (30,55,90), interpolation='lower')
+    return np.percentile(np.array(diastole_slice_indexes), (30,55,85), interpolation='lower')
 
 def read_pathology(meta_txt):
     pathology = ""
