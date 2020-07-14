@@ -51,14 +51,16 @@ def order_frames(frame_slice_dict, contours):
     area2 = cv.contourArea(contours[mid_slice_index][frame2][common_contour_mode].astype(int))
     return (frame2, frame1) if area1 > area2 else (frame1, frame2)
 
-def calculate_sampling_slices(frame_slice_dict, diastole_frame):
+def calculate_mid_slice(frame_slice_dict, diastole_frame):
     diastole_slice_indexes = frame_slice_dict[diastole_frame]
-    return np.percentile(np.array(diastole_slice_indexes), (30,55,85), interpolation='lower')
+    return np.percentile(np.array(diastole_slice_indexes), (55), interpolation='lower')
 
 def read_pathology(meta_txt):
     pathology = ""
     with open(meta_txt, "r") as f:
         pathology = f.readline().split(": ")[1]
+    if pathology == "":
+        exit(1)
     return pathology.rstrip()
 
 def resize_matrices(matrices):
@@ -97,17 +99,15 @@ def create_pickle_for_patient(in_dir, out_dir):
     create_path_for_file(pickle_file_path)
 
     (systole_frame, diastole_frame) = order_frames(frame_slice_dict, contours)
-    sampling_slices = calculate_sampling_slices(frame_slice_dict, diastole_frame)
-    systole_frames = []
-    diastole_frames = []
-    for slice_index in sampling_slices:
-        systole_frames.append(dr.get_image(slice_index, systole_frame).astype('uint8'))
-        diastole_frames.append(dr.get_image(slice_index, diastole_frame).astype('uint8'))
+    mid_slice = calculate_mid_slice(frame_slice_dict, diastole_frame)
+    hearth_cycle = []
+    for i in range(0, dr.num_frames):
+        frame_ind = (i + systole_frame) % dr.num_frames
+        hearth_cycle.append(dr.get_image(mid_slice, frame_ind).astype('uint8'))
 
     pathology = read_pathology(meta_txt)
-    systole_frames = resize_matrices(systole_frames)
-    diastole_frames = resize_matrices(diastole_frames)
-    patient_data = PatientData(scan_id, pathology, cr.get_volume_data(), systole_frames, diastole_frames)
+    hearth_cycle = resize_matrices(hearth_cycle)
+    patient_data = PatientData(scan_id, pathology, cr.get_volume_data(), hearth_cycle)
 
     with (open(pickle_file_path, "wb")) as pickleFile:
         pickle.dump(patient_data, pickleFile)
