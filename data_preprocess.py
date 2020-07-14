@@ -53,7 +53,7 @@ def order_frames(frame_slice_dict, contours):
 
 def calculate_sampling_slices(frame_slice_dict, diastole_frame):
     diastole_slice_indexes = frame_slice_dict[diastole_frame]
-    return np.percentile(np.array(diastole_slice_indexes), (30,55,85), interpolation='lower')
+    return np.percentile(np.array(diastole_slice_indexes), (30,55,80), interpolation='lower')
 
 def read_pathology(meta_txt):
     pathology = ""
@@ -101,8 +101,12 @@ def create_pickle_for_patient(in_dir, out_dir):
     systole_frames = []
     diastole_frames = []
     for slice_index in sampling_slices:
-        systole_frames.append(dr.get_image(slice_index, systole_frame).astype('uint8'))
-        diastole_frames.append(dr.get_image(slice_index, diastole_frame).astype('uint8'))
+        systole_img = dr.get_image(slice_index, systole_frame)
+        systole_img *= 255 / systole_img.max()
+        systole_frames.append(systole_img.astype('uint8'))
+        diastole_img = dr.get_image(slice_index, diastole_frame)
+        diastole_img *= 255 / diastole_img.max()
+        diastole_frames.append(diastole_img.astype('uint8'))
 
     pathology = read_pathology(meta_txt)
     systole_frames = resize_matrices(systole_frames)
