@@ -103,7 +103,9 @@ def create_pickle_for_patient(in_dir, out_dir):
     hearth_cycle = []
     for i in range(0, dr.num_frames):
         frame_ind = (i + systole_frame) % dr.num_frames
-        hearth_cycle.append(dr.get_image(mid_slice, frame_ind).astype('uint8'))
+        img = dr.get_image(mid_slice, frame_ind)
+        img *= 255 / img.max()
+        hearth_cycle.append(img.astype('uint8'))
 
     pathology = read_pathology(meta_txt)
     hearth_cycle = resize_matrices(hearth_cycle)
