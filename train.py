@@ -120,7 +120,7 @@ model = HypertrophyClassifier()
 
 model.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adadelta(model.parameters(), lr=0.005, weight_decay=3.0)
+optimizer = optim.Adam(model.parameters())
 
 in_dir = sys.argv[1]
 data_reader = DataReader(in_dir)
@@ -135,7 +135,7 @@ loader_validation = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
 loader_test = DataLoader(dataset, 1)
 
-epochs = 3
+epochs = 20
 train_losses = []
 validation_losses = []
 train_accuracies = []
