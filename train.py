@@ -53,6 +53,7 @@ def create_data_for_confusion_mx(loader):
 
 def plot_confusion_matrix(loader):
     cmap=plt.cm.Blues
+
     cm = np.array(create_data_for_confusion_mx(loader)[0]).astype('float')
     classes = ["Normal", "HCM", "Other"]
 
@@ -108,7 +109,7 @@ def calculate_loss(loader):
 
 
 batch_size = 30
-device = torch.device("cpu")
+device = torch.device("cuda")
 model = HypertrophyClassifier()
 #model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
 #model = nn.Sequential(
@@ -116,7 +117,6 @@ model = HypertrophyClassifier()
 #    nn.ReLU(),
 #    nn.Linear(1000, len(DataReader.possible_pathologies) + 1)
 #)
-
 
 model.to(device)
 criterion = nn.CrossEntropyLoss()
@@ -135,11 +135,11 @@ loader_validation = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
 loader_test = DataLoader(dataset, 1)
 
-epochs = 20
+epochs = 100
 train_losses = []
 validation_losses = []
 train_accuracies = []
-test_accuracies = []
+dev_accuracies = []
 scheduler = StepLR(optimizer, step_size=20, gamma=0.7)
 print("Training has started at {}".format(datetime.now()))
 for epoch in range(epochs):
@@ -156,15 +156,15 @@ for epoch in range(epochs):
         loss.backward()
         optimizer.step()
         trainloss_for_epoch += loss.cpu().detach().numpy()
-    scheduler.step()
+    #scheduler.step()
     trainloss_for_epoch /= counter
     validationloss_for_epoch = calculate_loss(loader_validation)
     train_losses.append(trainloss_for_epoch)
     validation_losses.append(validationloss_for_epoch)
+    train_accuracies.append(calc_accuracy(loader_train_accuracy, False))
+    dev_accuracies.append(calc_accuracy(loader_validation, False))
     if epoch % 10 == 0:
       print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch, validationloss_for_epoch))
-      train_accuracies.append(calc_accuracy(loader_train_accuracy, False))
-      test_accuracies.append(calc_accuracy(loader_test, False))
 
 plt.clf()
 print("Training has finished.")
@@ -173,7 +173,7 @@ plt.plot(validation_losses, label='validation_loss')
 plt.legend()
 plt.savefig("train_dev_loss.png")
 plt.clf()
-plt.plot(test_accuracies, label='test accuracy')
+plt.plot(dev_accuracies, label='dev accuracy')
 plt.plot(train_accuracies, label='train accuracy')
 plt.legend()
 plt.savefig("accuracy.png")

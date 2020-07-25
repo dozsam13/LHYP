@@ -16,7 +16,6 @@ class DataReader:
         while True:
           try:
             patient_data = pickle.load(patient_file)
-            #patient_data.contour_diff_matricies = list(map(self.__resize, patient_data.contour_diff_matricies))
             if len(patient_data.diastole_slices) == 3:
               multi_channel_picture = np.expand_dims(patient_data.diastole_slices[0], axis=0)
               multi_channel_picture = np.append(multi_channel_picture, np.expand_dims(patient_data.diastole_slices[1], axis=0), axis=0)
@@ -25,7 +24,7 @@ class DataReader:
               if patient_data.pathology in DataReader.possible_pathologies:
                 self.y.append(DataReader.possible_pathologies.index(patient_data.pathology))
               else:
-                self.y.append(2)
+                self.y.append(len(self.possible_pathologies))
             else:
               print(patient_file_path)
           except EOFError:
