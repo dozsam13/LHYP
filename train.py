@@ -12,6 +12,7 @@ from torch.optim.lr_scheduler import StepLR
 import numpy as np
 import itertools
 
+
 def calc_accuracy(loader, do_log):
     counter = 0
     correctly_labeled = 0
@@ -34,13 +35,14 @@ def calc_accuracy(loader, do_log):
         elif target in top2.tolist()[0]:
             topk_counter += 1
 
-    #print("Accuracy: {}".format(correctly_labeled/ counter))
-    #print("TopK: {}".format(topk_counter/ counter))
-    #print(topk_counter, counter)
-    return correctly_labeled/ counter
+    # print("Accuracy: {}".format(correctly_labeled/ counter))
+    # print("TopK: {}".format(topk_counter/ counter))
+    # print(topk_counter, counter)
+    return correctly_labeled / counter
+
 
 def create_data_for_confusion_mx(loader):
-    counters = [[0,0,0], [0,0,0], [0,0,0]]
+    counters = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
     counter = 0
     for sample in loader:
         counter += 1
@@ -51,8 +53,9 @@ def create_data_for_confusion_mx(loader):
         counters[target][predicted] += 1
     return counters, counter
 
+
 def plot_confusion_matrix(loader):
-    cmap=plt.cm.Blues
+    cmap = plt.cm.Blues
 
     cm = np.array(create_data_for_confusion_mx(loader)[0]).astype('float')
     classes = ["Normal", "HCM", "Other"]
@@ -67,12 +70,14 @@ def plot_confusion_matrix(loader):
     fmt = '.2f'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center", color="white" if cm[i, j] > thresh else "black")
+        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     plt.savefig("confusion.png")
+
 
 def split_data(ratio1, ratio2, data_x, data_y):
     n = len(data_x)
@@ -111,12 +116,12 @@ def calculate_loss(loader):
 batch_size = 30
 device = torch.device("cuda")
 model = HypertrophyClassifier()
-#model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
-#model = nn.Sequential(
+# model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
+# model = nn.Sequential(
 #    model,
 #    nn.ReLU(),
 #    nn.Linear(1000, len(DataReader.possible_pathologies) + 1)
-#)
+# )
 
 model.to(device)
 criterion = nn.CrossEntropyLoss()
@@ -156,7 +161,7 @@ for epoch in range(epochs):
         loss.backward()
         optimizer.step()
         trainloss_for_epoch += loss.cpu().detach().numpy()
-    #scheduler.step()
+    # scheduler.step()
     trainloss_for_epoch /= counter
     validationloss_for_epoch = calculate_loss(loader_validation)
     train_losses.append(trainloss_for_epoch)
@@ -164,7 +169,8 @@ for epoch in range(epochs):
     train_accuracies.append(calc_accuracy(loader_train_accuracy, False))
     dev_accuracies.append(calc_accuracy(loader_validation, False))
     if epoch % 10 == 0:
-      print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch, validationloss_for_epoch))
+        print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch,
+                                                                                  validationloss_for_epoch))
 
 plt.clf()
 print("Training has finished.")
