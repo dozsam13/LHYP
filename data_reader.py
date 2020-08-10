@@ -5,31 +5,31 @@ import numpy as np
 
 
 class DataReader:
-  #possible_pathologies = ['U18_m', 'Amyloidosis', 'U18_f', 'EMF', 'Fabry', 'adult_m_sport', 'Aortastenosis', 'Normal', 'HCM', 'adult_f_sport']
-  possible_pathologies = ['Normal', 'HCM']
-  def __init__(self, path):
-    patient_file_paths = list(map(lambda f : os.path.join(path, f), os.listdir(path)))
-    self.x = []
-    self.y = []
-    for patient_file_path in patient_file_paths:
-      with (open(patient_file_path, "rb")) as patient_file:
-        while True:
-          try:
-            patient_data = pickle.load(patient_file)
-            if len(patient_data.diastole_slices) == 3:
-              multi_channel_picture = np.expand_dims(patient_data.diastole_slices[0], axis=0)
-              multi_channel_picture = np.append(multi_channel_picture, np.expand_dims(patient_data.diastole_slices[1], axis=0), axis=0)
-              multi_channel_picture = np.append(multi_channel_picture, np.expand_dims(patient_data.diastole_slices[2], axis=0), axis=0)
-              self.x.append(multi_channel_picture)
-              if patient_data.pathology in DataReader.possible_pathologies:
-                self.y.append(DataReader.possible_pathologies.index(patient_data.pathology))
-              else:
-                self.y.append(len(self.possible_pathologies))
-            else:
-              print(patient_file_path)
-          except EOFError:
-            break
+    # possible_pathologies = ['U18_m', 'Amyloidosis', 'U18_f', 'EMF', 'Fabry', 'adult_m_sport', 'Aortastenosis',
+    # 'Normal', 'HCM', 'adult_f_sport']
+    possible_pathologies = ['Normal', 'HCM']
 
-  @staticmethod
-  def __resize(picture):
-    return cv.resize(picture, (224,224), interpolation = cv.INTER_AREA)
+    def __init__(self, path):
+        patient_file_paths = list(map(lambda f: os.path.join(path, f), os.listdir(path)))
+        self.x = []
+        self.y = []
+        for patient_file_path in patient_file_paths:
+            with (open(patient_file_path, "rb")) as patient_file:
+                patient_data = pickle.load(patient_file)
+                if len(patient_data.diastole_slices) == 3:
+                    multi_channel_picture = np.expand_dims(patient_data.diastole_slices[0], axis=0)
+                    multi_channel_picture = np.append(multi_channel_picture,
+                                                      np.expand_dims(patient_data.diastole_slices[1], axis=0), axis=0)
+                    multi_channel_picture = np.append(multi_channel_picture,
+                                                      np.expand_dims(patient_data.diastole_slices[2], axis=0), axis=0)
+                    self.x.append(multi_channel_picture)
+                    if patient_data.pathology in DataReader.possible_pathologies:
+                        self.y.append(DataReader.possible_pathologies.index(patient_data.pathology))
+                    else:
+                        self.y.append(len(self.possible_pathologies))
+                else:
+                    print(patient_file_path)
+
+    @staticmethod
+    def __resize(picture):
+        return cv.resize(picture, (224, 224), interpolation=cv.INTER_AREA)
