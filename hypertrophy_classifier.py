@@ -11,7 +11,7 @@ class HypertrophyClassifier(nn.Module):
         self.conv3 = nn.Conv2d(in_channels=15, out_channels=18, kernel_size=(3, 3), stride=1)
         self.conv4 = nn.Conv2d(in_channels=18, out_channels=21, kernel_size=(3, 3), stride=1, padding=1)
         self.conv5 = nn.Conv2d(in_channels=21, out_channels=30, kernel_size=(3, 3), stride=1, padding=1)
-        self.linear1 = nn.Linear(17280, 200)
+        self.linear1 = nn.Linear(20280, 200)
         self.linear2 = nn.Linear(200, 3)
 
         self.relu = nn.ReLU()
@@ -24,9 +24,8 @@ class HypertrophyClassifier(nn.Module):
         temp = self.relu(self.conv3(temp))  # (53, 53)
         temp = self.relu(self.conv4(temp))  # (51, 51)
         temp = self.maxpool_2_2(temp)  # (26, 26)
-        temp = self.relu(self.conv5(temp))  # (24, 24)
-
-        temp = temp.view(-1, 75264)
+        temp = self.relu(self.conv5(temp))  # (26, 26)
+        temp = temp.view(-1, 20280)
         temp = self.relu(self.linear1(temp))
         temp = self.linear2(temp)
         return temp
