@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
 import itertools
+from torchvision import transforms
 
 
 def calc_accuracy(loader, do_log):
@@ -132,7 +133,12 @@ data_reader = DataReader(in_dir)
 
 (train_data, validation_data, test_data) = split_data(0.66, 0.83, data_reader.x, data_reader.y)
 
-dataset = HypertrophyDataset(train_data[0], train_data[1], device)
+augmenter = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.RandomAffine([-90, 90]),
+            transforms.ToTensor()
+        ])
+dataset = HypertrophyDataset(train_data[0], train_data[1], device, augmenter)
 loader_train = DataLoader(dataset, batch_size)
 loader_train_accuracy = DataLoader(dataset, 1)
 dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)

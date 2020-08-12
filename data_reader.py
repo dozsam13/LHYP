@@ -17,11 +17,8 @@ class DataReader:
             with (open(patient_file_path, "rb")) as patient_file:
                 patient_data = pickle.load(patient_file)
                 if len(patient_data.diastole_slices) == 3:
-                    multi_channel_picture = np.expand_dims(patient_data.diastole_slices[0], axis=0)
-                    multi_channel_picture = np.append(multi_channel_picture,
-                                                      np.expand_dims(patient_data.diastole_slices[1], axis=0), axis=0)
-                    multi_channel_picture = np.append(multi_channel_picture,
-                                                      np.expand_dims(patient_data.diastole_slices[2], axis=0), axis=0)
+                    multi_channel_picture = np.dstack((patient_data.diastole_slices[0], patient_data.diastole_slices[1],
+                                                       patient_data.diastole_slices[2]))
                     self.x.append(multi_channel_picture)
                     if patient_data.pathology in DataReader.possible_pathologies:
                         self.y.append(DataReader.possible_pathologies.index(patient_data.pathology))
