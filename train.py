@@ -126,7 +126,7 @@ model = HypertrophyClassifier()
 
 model.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters())
+optimizer = optim.Adam(model.parameters(), weight_decay=0.7)
 
 in_dir = sys.argv[1]
 data_reader = DataReader(in_dir)
@@ -142,7 +142,7 @@ dataset = HypertrophyDataset(train_data[0], train_data[1], device, augmenter)
 loader_train = DataLoader(dataset, batch_size)
 loader_train_accuracy = DataLoader(dataset, 1)
 dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
-loader_validation = DataLoader(dataset, batch_size)
+loader_validation = DataLoader(dataset, 1)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
 loader_test = DataLoader(dataset, 1)
 
@@ -176,8 +176,9 @@ for epoch in range(epochs):
     dev_accuracies.append(calc_accuracy(loader_validation, False))
     if epoch % 10 == 0:
         print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch,
-                                                                                  validationloss_for_epoch))
+                                                                            validationloss_for_epoch))
 
+print("Test accuracy: ", calc_accuracy(loader_test))
 plt.clf()
 print("Training has finished.")
 plt.plot(train_losses, label='train_loss')
