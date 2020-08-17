@@ -14,32 +14,16 @@ import itertools
 from torchvision import transforms
 
 
-def calc_accuracy(loader, do_log):
-    counter = 0
+def calc_accuracy(loader):
     correctly_labeled = 0
-    topk_counter = 0
     for sample in loader:
-        counter += 1
         image = sample['image']
         target = sample['target']
         res = model(image)
-        predicted = torch.argmax(res)
-        if do_log:
-            print("------------------------------------------------------")
-            print(target)
-            print(torch.topk(res, 3)[1])
-            print(res)
-        top2 = torch.topk(res, 2)[1]
-        if target == predicted:
-            correctly_labeled += 1
-            topk_counter += 1
-        elif target in top2.tolist()[0]:
-            topk_counter += 1
+        predicted = torch.argmax(res, dim=1)
+        correctly_labeled += torch.eq(target, predicted).sum().cpu().detach().numpy()
 
-    # print("Accuracy: {}".format(correctly_labeled/ counter))
-    # print("TopK: {}".format(topk_counter/ counter))
-    # print(topk_counter, counter)
-    return correctly_labeled / counter
+    return correctly_labeled / len(loader.dataset)
 
 
 def create_data_for_confusion_mx(loader):
@@ -141,13 +125,13 @@ augmenter = transforms.Compose([
         ])
 dataset = HypertrophyDataset(train_data[0], train_data[1], device, augmenter)
 loader_train = DataLoader(dataset, batch_size)
-loader_train_accuracy = DataLoader(dataset, 1)
+loader_train_accuracy = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
-loader_validation = DataLoader(dataset, 1)
+loader_validation = DataLoader(dataset, batch_size)
 dataset = HypertrophyDataset(test_data[0], test_data[1], device)
-loader_test = DataLoader(dataset, 1)
+loader_test = DataLoader(dataset, batch_size)
 
-epochs = 150
+epochs = 40
 train_losses = []
 validation_losses = []
 train_accuracies = []
@@ -173,13 +157,13 @@ for epoch in range(epochs):
     validationloss_for_epoch = calculate_loss(loader_validation)
     train_losses.append(trainloss_for_epoch)
     validation_losses.append(validationloss_for_epoch)
-    train_accuracies.append(calc_accuracy(loader_train_accuracy, False))
-    dev_accuracies.append(calc_accuracy(loader_validation, False))
+    train_accuracies.append(calc_accuracy(loader_train_accuracy))
+    dev_accuracies.append(calc_accuracy(loader_validation))
     if epoch % 10 == 0:
         print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch,
                                                                             validationloss_for_epoch))
 
-print("Test accuracy: ", calc_accuracy(loader_test, False))
+print("Test accuracy: ", calc_accuracy(loader_test))
 plt.clf()
 print("Training has finished.")
 plt.plot(train_losses, label='train_loss')
@@ -192,4 +176,4 @@ plt.plot(train_accuracies, label='train accuracy')
 plt.legend()
 plt.savefig("accuracy.png")
 plt.clf()
-plot_confusion_matrix(loader_test)
+#plot_confusion_matrix(loader_test)
