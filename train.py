@@ -14,7 +14,7 @@ import itertools
 from torchvision import transforms
 
 
-def calc_accuracy(loader):
+def calc_accuracy(loader, model):
     correctly_labeled = 0
     for sample in loader:
         image = sample['image']
@@ -83,7 +83,7 @@ def split_data(ratio1, ratio2, data_x, data_y):
     return (train_x, train_y), (dev_x, dev_y), (test_x, test_y)
 
 
-def calculate_loss(loader):
+def calculate_loss(loader, model, criterion):
     loss_sum = 0.0
     counter = 0
     for sample in loader:
@@ -155,11 +155,11 @@ def train_model(config):
             trainloss_for_epoch += loss.cpu().detach().numpy()
         # scheduler.step()
         trainloss_for_epoch /= counter
-        validationloss_for_epoch = calculate_loss(loader_validation)
-        train_losses.append(trainloss_for_epoch)
-        validation_losses.append(validationloss_for_epoch)
-        train_accuracies.append(calc_accuracy(loader_train_accuracy))
-        dev_accuracies.append(calc_accuracy(loader_validation))
+        # validationloss_for_epoch = calculate_loss(loader_validation, model, criterion)
+        # train_losses.append(trainloss_for_epoch)
+        # validation_losses.append(validationloss_for_epoch)
+        # train_accuracies.append(calc_accuracy(loader_train_accuracy, model))
+        # dev_accuracies.append(calc_accuracy(loader_validation, model))
     # print("Test accuracy: ", calc_accuracy(loader_test))
     # plt.clf()
     # print("Training has finished.")
@@ -175,7 +175,7 @@ def train_model(config):
     # plt.clf()
     # plot_confusion_matrix(loader_test)
 
-    return calc_accuracy(loader_test)
+    return calc_accuracy(loader_test, model)
 
 if __name__ == '__main__':
     train_model({"weight_decay": 0.5})
