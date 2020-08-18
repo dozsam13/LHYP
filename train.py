@@ -98,82 +98,84 @@ def calculate_loss(loader):
     return loss_sum / counter
 
 
-batch_size = 30
-device = torch.device("cuda")
-model = HypertrophyClassifier()
-# model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
-# model = nn.Sequential(
-#    model,
-#    nn.ReLU(),
-#    nn.Linear(1000, len(DataReader.possible_pathologies) + 1)
-# )
+def train_model(config):
+    batch_size = 30
+    device = torch.device("cuda")
+    model = HypertrophyClassifier()
+    # model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
+    # model = nn.Sequential(
+    #    model,
+    #    nn.ReLU(),
+    #    nn.Linear(1000, len(DataReader.possible_pathologies) + 1)
+    # )
 
-model.to(device)
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), weight_decay=0.02)
+    model.to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), weight_decay=config["weight_decay"])
 
-in_dir = sys.argv[1]
-data_reader = DataReader(in_dir)
+    in_dir = sys.argv[1]
+    data_reader = DataReader(in_dir)
 
-(train_data, validation_data, test_data) = split_data(0.66, 0.83, data_reader.x, data_reader.y)
+    (train_data, validation_data, test_data) = split_data(0.66, 0.83, data_reader.x, data_reader.y)
 
-augmenter = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.RandomAffine([-180, 180]),
-           # transforms.RandomResizedCrop((224,224), scale=(0.5, 1.0)),
-            transforms.ToTensor()
-        ])
-dataset = HypertrophyDataset(train_data[0], train_data[1], device, augmenter)
-loader_train = DataLoader(dataset, batch_size)
-loader_train_accuracy = DataLoader(dataset, batch_size)
-dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
-loader_validation = DataLoader(dataset, batch_size)
-dataset = HypertrophyDataset(test_data[0], test_data[1], device)
-loader_test = DataLoader(dataset, batch_size)
+    augmenter = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.RandomAffine([-180, 180]),
+        # transforms.RandomResizedCrop((224,224), scale=(0.5, 1.0)),
+        transforms.ToTensor()
+    ])
+    dataset = HypertrophyDataset(train_data[0], train_data[1], device, augmenter)
+    loader_train = DataLoader(dataset, batch_size)
+    loader_train_accuracy = DataLoader(dataset, batch_size)
+    dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
+    loader_validation = DataLoader(dataset, batch_size)
+    dataset = HypertrophyDataset(test_data[0], test_data[1], device)
+    loader_test = DataLoader(dataset, batch_size)
 
-epochs = 40
-train_losses = []
-validation_losses = []
-train_accuracies = []
-dev_accuracies = []
-scheduler = StepLR(optimizer, step_size=20, gamma=0.7)
-print("Training has started at {}".format(datetime.now()))
-for epoch in range(epochs):
-    trainloss_for_epoch = 0.0
-    counter = 0
-    for index, sample in enumerate(loader_train):
-        counter += 1
-        image = sample['image']
-        target = sample['target']
+    epochs = 40
+    train_losses = []
+    validation_losses = []
+    train_accuracies = []
+    dev_accuracies = []
+    scheduler = StepLR(optimizer, step_size=20, gamma=0.7)
+    print("Training has started at {}".format(datetime.now()))
+    for epoch in range(epochs):
+        trainloss_for_epoch = 0.0
+        counter = 0
+        for index, sample in enumerate(loader_train):
+            counter += 1
+            image = sample['image']
+            target = sample['target']
 
-        predicted = model(image)
-        loss = criterion(predicted, target)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        trainloss_for_epoch += loss.cpu().detach().numpy()
-    # scheduler.step()
-    trainloss_for_epoch /= counter
-    validationloss_for_epoch = calculate_loss(loader_validation)
-    train_losses.append(trainloss_for_epoch)
-    validation_losses.append(validationloss_for_epoch)
-    train_accuracies.append(calc_accuracy(loader_train_accuracy))
-    dev_accuracies.append(calc_accuracy(loader_validation))
-    if epoch % 10 == 0:
-        print("Epoch {} has finished (train loss: {}, validation loss: {}".format(epoch, trainloss_for_epoch,
-                                                                            validationloss_for_epoch))
+            predicted = model(image)
+            loss = criterion(predicted, target)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            trainloss_for_epoch += loss.cpu().detach().numpy()
+        # scheduler.step()
+        trainloss_for_epoch /= counter
+        validationloss_for_epoch = calculate_loss(loader_validation)
+        train_losses.append(trainloss_for_epoch)
+        validation_losses.append(validationloss_for_epoch)
+        train_accuracies.append(calc_accuracy(loader_train_accuracy))
+        dev_accuracies.append(calc_accuracy(loader_validation))
+    # print("Test accuracy: ", calc_accuracy(loader_test))
+    # plt.clf()
+    # print("Training has finished.")
+    # plt.plot(train_losses, label='train_loss')
+    # plt.plot(validation_losses, label='validation_loss')
+    # plt.legend()
+    # plt.savefig("train_dev_loss.png")
+    # plt.clf()
+    # plt.plot(dev_accuracies, label='dev accuracy')
+    # plt.plot(train_accuracies, label='train accuracy')
+    # plt.legend()
+    # plt.savefig("accuracy.png")
+    # plt.clf()
+    # plot_confusion_matrix(loader_test)
 
-print("Test accuracy: ", calc_accuracy(loader_test))
-plt.clf()
-print("Training has finished.")
-plt.plot(train_losses, label='train_loss')
-plt.plot(validation_losses, label='validation_loss')
-plt.legend()
-plt.savefig("train_dev_loss.png")
-plt.clf()
-plt.plot(dev_accuracies, label='dev accuracy')
-plt.plot(train_accuracies, label='train accuracy')
-plt.legend()
-plt.savefig("accuracy.png")
-plt.clf()
-#plot_confusion_matrix(loader_test)
+    return calc_accuracy(loader_test)
+
+if __name__ == '__main__':
+    train_model({"weight_decay": 0.5})
