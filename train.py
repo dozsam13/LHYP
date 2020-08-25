@@ -100,7 +100,7 @@ def calculate_loss(loader, model, criterion):
 
 def train_model(config):
     batch_size = 50
-    device = torch.device("cpu")
+    device = torch.device("cuda")
     model = HypertrophyClassifier()
     # model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
     # model = nn.Sequential(
