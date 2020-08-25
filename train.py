@@ -26,42 +26,42 @@ def calc_accuracy(loader, model):
     return correctly_labeled / len(loader.dataset)
 
 
-def create_data_for_confusion_mx(loader):
-    counters = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-    counter = 0
-    for sample in loader:
-        counter += 1
-        image = sample['image']
-        target = sample['target']
-        res = model(image)
-        predicted = torch.argmax(res)
-        counters[target][predicted] += 1
-    return counters, counter
+# def create_data_for_confusion_mx(loader):
+#     counters = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+#     counter = 0
+#     for sample in loader:
+#         counter += 1
+#         image = sample['image']
+#         target = sample['target']
+#         res = model(image)
+#         predicted = torch.argmax(res)
+#         counters[target][predicted] += 1
+#     return counters, counter
 
 
-def plot_confusion_matrix(loader):
-    cmap = plt.cm.Blues
-
-    cm = np.array(create_data_for_confusion_mx(loader)[0]).astype('float')
-    classes = ["Normal", "HCM", "Other"]
-
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title('Confusion matrix')
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
-
-    fmt = '.2f'
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
-
-    plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    plt.savefig("confusion.png")
+# def plot_confusion_matrix(loader):
+#     cmap = plt.cm.Blues
+#
+#     cm = np.array(create_data_for_confusion_mx(loader)[0]).astype('float')
+#     classes = ["Normal", "HCM", "Other"]
+#
+#     plt.imshow(cm, interpolation='nearest', cmap=cmap)
+#     plt.title('Confusion matrix')
+#     plt.colorbar()
+#     tick_marks = np.arange(len(classes))
+#     plt.xticks(tick_marks, classes, rotation=45)
+#     plt.yticks(tick_marks, classes)
+#
+#     fmt = '.2f'
+#     thresh = cm.max() / 2.
+#     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+#         plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
+#                  color="white" if cm[i, j] > thresh else "black")
+#
+#     plt.tight_layout()
+#     plt.ylabel('True label')
+#     plt.xlabel('Predicted label')
+#     plt.savefig("confusion.png")
 
 
 def split_data(ratio1, ratio2, data_x, data_y):
@@ -99,8 +99,8 @@ def calculate_loss(loader, model, criterion):
 
 
 def train_model(config):
-    batch_size = 30
-    device = torch.device("cuda")
+    batch_size = 50
+    device = torch.device("cpu")
     model = HypertrophyClassifier()
     # model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
     # model = nn.Sequential(
@@ -111,7 +111,7 @@ def train_model(config):
 
     model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), weight_decay=config["weight_decay"])
+    optimizer = optim.Adam(model.parameters())
 
     in_dir = sys.argv[1]
     data_reader = DataReader(in_dir)
@@ -120,7 +120,7 @@ def train_model(config):
 
     augmenter = transforms.Compose([
         transforms.ToPILImage(),
-        transforms.RandomAffine([-180, 180]),
+        transforms.RandomAffine([-45, 45]),
         # transforms.RandomResizedCrop((224,224), scale=(0.5, 1.0)),
         transforms.ToTensor()
     ])
@@ -160,7 +160,7 @@ def train_model(config):
         # validation_losses.append(validationloss_for_epoch)
         # train_accuracies.append(calc_accuracy(loader_train_accuracy, model))
         # dev_accuracies.append(calc_accuracy(loader_validation, model))
-    # print("Test accuracy: ", calc_accuracy(loader_test))
+    # print("Test accuracy: ", calc_accuracy(loader_test, model))
     # plt.clf()
     # print("Training has finished.")
     # plt.plot(train_losses, label='train_loss')
@@ -175,7 +175,7 @@ def train_model(config):
     # plt.clf()
     # plot_confusion_matrix(loader_test)
 
-    return calc_accuracy(loader_test, model)
+    return calculate_loss(loader_validation, model, criterion)
 
 if __name__ == '__main__':
     train_model({"weight_decay": 0.5})
