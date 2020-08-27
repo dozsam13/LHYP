@@ -111,7 +111,7 @@ def train_model(config):
 
     model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optim.Adam(model.parameters(), weight_decay=1.0)
 
     in_dir = sys.argv[1]
     data_reader = DataReader(in_dir)
@@ -120,9 +120,11 @@ def train_model(config):
 
     augmenter = transforms.Compose([
         transforms.ToPILImage(),
-        transforms.RandomAffine([-45, 45]),
+        transforms.RandomAffine([-90, 90]),
         # transforms.RandomResizedCrop((224,224), scale=(0.5, 1.0)),
-        transforms.ToTensor()
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+std=[0.229, 0.224, 0.225])
     ])
     dataset = HypertrophyDataset(train_data[0], train_data[1], device, augmenter)
     loader_train = DataLoader(dataset, batch_size)
@@ -132,12 +134,12 @@ def train_model(config):
     dataset = HypertrophyDataset(test_data[0], test_data[1], device)
     loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 40
+    epochs = 300
     train_losses = []
     validation_losses = []
     train_accuracies = []
     dev_accuracies = []
-    scheduler = StepLR(optimizer, step_size=20, gamma=0.7)
+    scheduler = StepLR(optimizer, step_size=50, gamma=0.7)
     print("Training has started at {}".format(datetime.now()))
     for epoch in range(epochs):
         trainloss_for_epoch = 0.0
@@ -153,29 +155,30 @@ def train_model(config):
             loss.backward()
             optimizer.step()
             trainloss_for_epoch += loss.cpu().detach().numpy()
-        # scheduler.step()
+        scheduler.step()
         trainloss_for_epoch /= counter
-        # validationloss_for_epoch = calculate_loss(loader_validation, model, criterion)
-        # train_losses.append(trainloss_for_epoch)
-        # validation_losses.append(validationloss_for_epoch)
-        # train_accuracies.append(calc_accuracy(loader_train_accuracy, model))
-        # dev_accuracies.append(calc_accuracy(loader_validation, model))
-    # print("Test accuracy: ", calc_accuracy(loader_test, model))
-    # plt.clf()
-    # print("Training has finished.")
-    # plt.plot(train_losses, label='train_loss')
-    # plt.plot(validation_losses, label='validation_loss')
-    # plt.legend()
-    # plt.savefig("train_dev_loss.png")
-    # plt.clf()
-    # plt.plot(dev_accuracies, label='dev accuracy')
-    # plt.plot(train_accuracies, label='train accuracy')
-    # plt.legend()
-    # plt.savefig("accuracy.png")
-    # plt.clf()
+        validationloss_for_epoch = calculate_loss(loader_validation, model, criterion)
+        train_losses.append(trainloss_for_epoch)
+        validation_losses.append(validationloss_for_epoch)
+        train_accuracies.append(calc_accuracy(loader_train_accuracy, model))
+        dev_accuracies.append(calc_accuracy(loader_validation, model))
+    model.eval()
+    print("Dev accuracy: ", calc_accuracy(loader_validation, model))
+    plt.clf()
+    print("Training has finished.")
+    plt.plot(train_losses, label='train_loss')
+    plt.plot(validation_losses, label='validation_loss')
+    plt.legend()
+    plt.savefig("train_dev_loss.png")
+    plt.clf()
+    plt.plot(dev_accuracies, label='dev accuracy')
+    plt.plot(train_accuracies, label='train accuracy')
+    plt.legend()
+    plt.savefig("accuracy.png")
+    plt.clf()
     # plot_confusion_matrix(loader_test)
 
-    return calculate_loss(loader_validation, model, criterion)
+    #return calculate_loss(loader_validation, model, criterion)
 
 if __name__ == '__main__':
     train_model({"weight_decay": 0.5})
