@@ -7,11 +7,10 @@ from hypertrophy_classifier import HypertrophyClassifier
 import torch.optim as optim
 from datetime import datetime
 import sys
-import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
-import itertools
 from torchvision import transforms
+import util.plot_util as plot_util
 
 
 def calc_accuracy(loader, model):
@@ -24,44 +23,6 @@ def calc_accuracy(loader, model):
         correctly_labeled += torch.eq(target, predicted).sum().cpu().detach().numpy()
 
     return correctly_labeled / len(loader.dataset)
-
-
-# def create_data_for_confusion_mx(loader):
-#     counters = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-#     counter = 0
-#     for sample in loader:
-#         counter += 1
-#         image = sample['image']
-#         target = sample['target']
-#         res = model(image)
-#         predicted = torch.argmax(res)
-#         counters[target][predicted] += 1
-#     return counters, counter
-
-
-# def plot_confusion_matrix(loader):
-#     cmap = plt.cm.Blues
-#
-#     cm = np.array(create_data_for_confusion_mx(loader)[0]).astype('float')
-#     classes = ["Normal", "HCM", "Other"]
-#
-#     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-#     plt.title('Confusion matrix')
-#     plt.colorbar()
-#     tick_marks = np.arange(len(classes))
-#     plt.xticks(tick_marks, classes, rotation=45)
-#     plt.yticks(tick_marks, classes)
-#
-#     fmt = '.2f'
-#     thresh = cm.max() / 2.
-#     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-#         plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
-#                  color="white" if cm[i, j] > thresh else "black")
-#
-#     plt.tight_layout()
-#     plt.ylabel('True label')
-#     plt.xlabel('Predicted label')
-#     plt.savefig("confusion.png")
 
 
 def split_data(ratio1, ratio2, data_x, data_y):
@@ -98,48 +59,47 @@ def calculate_loss(loader, model, criterion):
     return loss_sum / counter
 
 
+def manage_batchnorm(model, b):
+    for child in model.children():
+        if type(child) is nn.BatchNorm2d or type(child) is nn.BatchNorm1d:
+            child.track_running_stats = b
+
+
 def train_model(config):
-    batch_size = 50
-    device = torch.device("cuda")
-    model = HypertrophyClassifier()
-    # model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
-    # model = nn.Sequential(
-    #    model,
-    #    nn.ReLU(),
-    #    nn.Linear(1000, len(DataReader.possible_pathologies) + 1)
-    # )
+    batch_size = 70
+    device = torch.device("cpu")
+    model = HypertrophyClassifier(config["c1c2"], config["c2c3"], config["c3c4"], config["c4c5"], config["c5c6"])
 
     model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), weight_decay=1.0)
+    optimizer = optim.Adam(model.parameters(), weight_decay=config["weight_decay"], lr=config["lr"])
 
     in_dir = sys.argv[1]
     data_reader = DataReader(in_dir)
 
     (train_data, validation_data, test_data) = split_data(0.66, 0.83, data_reader.x, data_reader.y)
 
+    print(len(train_data[0]))
     augmenter = transforms.Compose([
         transforms.ToPILImage(),
-        transforms.RandomAffine([-90, 90]),
-        # transforms.RandomResizedCrop((224,224), scale=(0.5, 1.0)),
+        transforms.RandomAffine([-45, 45]),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-std=[0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     dataset = HypertrophyDataset(train_data[0], train_data[1], device, augmenter)
     loader_train = DataLoader(dataset, batch_size)
     loader_train_accuracy = DataLoader(dataset, batch_size)
     dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
     loader_validation = DataLoader(dataset, batch_size)
-    dataset = HypertrophyDataset(test_data[0], test_data[1], device)
-    loader_test = DataLoader(dataset, batch_size)
+    # dataset = HypertrophyDataset(test_data[0], test_data[1], device)
+    # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 300
+    epochs = 1
     train_losses = []
-    validation_losses = []
+    dev_losses = []
     train_accuracies = []
     dev_accuracies = []
-    scheduler = StepLR(optimizer, step_size=50, gamma=0.7)
+    scheduler = StepLR(optimizer, step_size=60, gamma=0.65)
     print("Training has started at {}".format(datetime.now()))
     for epoch in range(epochs):
         trainloss_for_epoch = 0.0
@@ -159,26 +119,19 @@ std=[0.229, 0.224, 0.225])
         trainloss_for_epoch /= counter
         validationloss_for_epoch = calculate_loss(loader_validation, model, criterion)
         train_losses.append(trainloss_for_epoch)
-        validation_losses.append(validationloss_for_epoch)
+        dev_losses.append(validationloss_for_epoch)
         train_accuracies.append(calc_accuracy(loader_train_accuracy, model))
         dev_accuracies.append(calc_accuracy(loader_validation, model))
-    model.eval()
-    print("Dev accuracy: ", calc_accuracy(loader_validation, model))
-    plt.clf()
-    print("Training has finished.")
-    plt.plot(train_losses, label='train_loss')
-    plt.plot(validation_losses, label='validation_loss')
-    plt.legend()
-    plt.savefig("train_dev_loss.png")
-    plt.clf()
-    plt.plot(dev_accuracies, label='dev accuracy')
-    plt.plot(train_accuracies, label='train accuracy')
-    plt.legend()
-    plt.savefig("accuracy.png")
-    plt.clf()
-    # plot_confusion_matrix(loader_test)
 
-    #return calculate_loss(loader_validation, model, criterion)
+    manage_batchnorm(model, False)
+    model.eval()
+    print("Training has finished.")
+    print("Dev accuracy: ", calc_accuracy(loader_validation, model))
+    plot_util.plot_data(train_losses, 'train_loss', dev_losses, 'dev_loss', "loss.png")
+    plot_util.plot_data(train_accuracies, 'train accuracy', dev_accuracies, 'dev accuracy', "accuracy.png")
+
+    return calculate_loss(loader_validation, model, criterion)
+
 
 if __name__ == '__main__':
-    train_model({"weight_decay": 0.5})
+    train_model({"weight_decay": 0.5, "lr": 0.001, "c1c2": 10, "c2c3": 20, "c3c4": 30, "c4c5": 40, "c5c6": 60})
