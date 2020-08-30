@@ -67,7 +67,7 @@ def manage_batchnorm(model, b):
 
 def train_model(config):
     batch_size = 70
-    device = torch.device("cpu")
+    device = torch.device("cuda")
     model = HypertrophyClassifier(config["c1c2"], config["c2c3"], config["c3c4"], config["c4c5"], config["c5c6"])
 
     model.to(device)
@@ -94,7 +94,7 @@ def train_model(config):
     # dataset = HypertrophyDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 1
+    epochs = 300
     train_losses = []
     dev_losses = []
     train_accuracies = []
