@@ -59,16 +59,16 @@ def calculate_loss(loader, model, criterion):
     return loss_sum / counter
 
 
-def manage_batchnorm(model, b):
+def manage_batchnorm(model, state):
     for child in model.children():
         if type(child) is nn.BatchNorm2d or type(child) is nn.BatchNorm1d:
-            child.track_running_stats = b
+            child.track_running_stats = state
 
 
 def train_model(config):
     batch_size = 70
     device = torch.device("cuda")
-    model = HypertrophyClassifier(config["c1c2"], config["c2c3"], config["c3c4"], config["c4c5"], config["c5c6"])
+    model = HypertrophyClassifier(config["c1c2"], config["c2c3"], config["c3c4"], config["c4c5"], config["c5c6"], config["c6l1"])
 
     model.to(device)
     criterion = nn.CrossEntropyLoss()
@@ -79,7 +79,6 @@ def train_model(config):
 
     (train_data, validation_data, test_data) = split_data(0.66, 0.83, data_reader.x, data_reader.y)
 
-    print(len(train_data[0]))
     augmenter = transforms.Compose([
         transforms.ToPILImage(),
         transforms.RandomAffine([-45, 45]),
@@ -134,4 +133,5 @@ def train_model(config):
 
 
 if __name__ == '__main__':
-    train_model({"weight_decay": 0.5, "lr": 0.001, "c1c2": 10, "c2c3": 20, "c3c4": 30, "c4c5": 40, "c5c6": 60})
+    train_model({'weight_decay': 0.8370714321136474, 'lr': 0.0017173530442640187, 'c1c2': 8, 'c2c3': 29, 'c3c4': 36, 'c4c5': 58, 'c5c6': 66, 'c6l1': 149})
+

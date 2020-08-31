@@ -10,8 +10,8 @@ best_parameters, best_values, _, _ = optimize(
         {"name": "c3c4", "type": "choice", "values": [i for i in range(30, 41, 3)]},
         {"name": "c4c5", "type": "choice", "values": [i for i in range(40, 61, 3)]},
         {"name": "c5c6", "type": "choice", "values": [i for i in range(60, 81, 3)]},
+        {"name": "c6l1", "type": "choice", "values": [i for i in range(80, 150, 3)]}
                 ],
-    evaluation_function=train.train_model, minimize=False)
+    evaluation_function=train.train_model, minimize=True)
 print(best_parameters)
-
-#  train_model({"weight_decay": 0.5, "lr": 0.001, "c1c2": 10, "c2c3": 20, "c3c4": 30, "c4c5": 40, "c5c6": 60})
+print("Best values: ", best_values)
