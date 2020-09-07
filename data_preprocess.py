@@ -10,6 +10,11 @@ import cv2 as cv
 
 logger = get_logger(__name__)
 
+def crop_center(img,cropx,cropy):
+    y,x = img.shape
+    startx = x//2-(cropx//2)
+    starty = y//2-(cropy//2)
+    return img[starty:starty+cropy,startx:startx+cropx]
 
 def create_path_for_file(pickle_file_path):
     os.makedirs(os.path.dirname(pickle_file_path), exist_ok=True)
@@ -123,6 +128,7 @@ def create_pickle_for_patient(in_dir, out_dir):
 
     pathology = read_pathology(meta_txt)
     hearth_cycle = resize_matrices(hearth_cycle)
+    hearth_cycle = list(map(lambda p: crop_center(p, 110, 110), hearth_cycle))
     patient_data = PatientData(scan_id, pathology, cr.get_volume_data(), hearth_cycle)
 
     with (open(pickle_file_path, "wb")) as pickleFile:
