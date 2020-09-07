@@ -14,6 +14,11 @@ logger = get_logger(__name__)
 def create_path_for_file(pickle_file_path):
     os.makedirs(os.path.dirname(pickle_file_path), exist_ok=True)
 
+def crop_center(img,cropx,cropy):
+    y,x = img.shape
+    startx = x//2-(cropx//2)
+    starty = y//2-(cropy//2)
+    return img[starty:starty+cropy,startx:startx+cropx]
 
 def collect_contour_slices_by_frames(contours):
     frameSliceDict = {}
@@ -59,7 +64,7 @@ def order_frames(frame_slice_dict, contours):
 
 def calculate_sampling_slices(frame_slice_dict, diastole_frame):
     diastole_slice_indexes = frame_slice_dict[diastole_frame]
-    return np.percentile(np.array(diastole_slice_indexes), (30, 55, 80), interpolation='lower')
+    return np.percentile(np.array(diastole_slice_indexes), (20, 50, 84), interpolation='lower')
 
 
 def read_pathology(meta_txt):
@@ -128,6 +133,8 @@ def create_pickle_for_patient(in_dir, out_dir):
     pathology = read_pathology(meta_txt)
     systole_frames = resize_matrices(systole_frames)
     diastole_frames = resize_matrices(diastole_frames)
+    systole_frames = list(map(lambda p: crop_center(p, 110, 110), systole_frames))
+    diastole_frames = list(map(lambda p: crop_center(p, 110, 110), diastole_frames))
     patient_data = PatientData(scan_id, pathology, cr.get_volume_data(), systole_frames, diastole_frames)
 
     with (open(pickle_file_path, "wb")) as pickleFile:
