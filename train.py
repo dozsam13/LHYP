@@ -59,16 +59,10 @@ def calculate_loss(loader, model, criterion):
     return loss_sum / counter
 
 
-def manage_batchnorm(model, state):
-    for child in model.children():
-        if type(child) is nn.BatchNorm2d or type(child) is nn.BatchNorm1d:
-            child.track_running_stats = state
-
-
 def train_model(config):
     batch_size = 70
     device = torch.device("cuda")
-    model = HypertrophyClassifier(config["c1c2"], config["c2c3"], config["c3c4"], config["c4c5"], config["c5c6"], config["c6l1"])
+    model =
 
     model.to(device)
     criterion = nn.CrossEntropyLoss()
