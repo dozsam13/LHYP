@@ -68,7 +68,7 @@ def manage_batchnorm(model, state):
 def train_model(config):
     batch_size = 70
     device = torch.device("cuda")
-    model = HypertrophyClassifier(config["c1c2"], config["c2c3"], config["c3c4"], config["c4c5"], config["c5c6"], config["c6l1"])
+    model = HypertrophyClassifier(config["c1c2"], config["c2c3"], config["c3c4"], config["c4c5"], config["c5c6"], config["c6c7"], config["c7l1"])
 
     model.to(device)
     criterion = nn.CrossEntropyLoss()
@@ -93,12 +93,12 @@ def train_model(config):
     # dataset = HypertrophyDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 300
+    epochs = 250
     train_losses = []
     dev_losses = []
     train_accuracies = []
     dev_accuracies = []
-    scheduler = StepLR(optimizer, step_size=60, gamma=0.65)
+    scheduler = StepLR(optimizer, step_size=60, gamma=0.85)
     print("Training has started at {}".format(datetime.now()))
     for epoch in range(epochs):
         trainloss_for_epoch = 0.0
@@ -131,7 +131,12 @@ def train_model(config):
 
     return calculate_loss(loader_validation, model, criterion)
 
+def train_multiple(config):
+    dev_losses = []
+    for i in range(15):
+        dev_losses.append(train_model(config))
+    print(dev_losses)
+    return min(dev_losses)
 
 if __name__ == '__main__':
-    train_model({'weight_decay': 0.8370714321136474, 'lr': 0.0017173530442640187, 'c1c2': 8, 'c2c3': 29, 'c3c4': 36, 'c4c5': 58, 'c5c6': 66, 'c6l1': 149})
-
+    train_multiple({'weight_decay': 0.17436205057613552, 'lr': 0.010067508963774889, 'c1c2': 10, 'c2c3': 22, 'c3c4': 28, 'c4c5': 36, 'c5c6': 50, 'c6c7': 64, 'c7l1': 80})
