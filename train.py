@@ -115,6 +115,7 @@ def train_model(config):
             optimizer.step()
             trainloss_for_epoch += loss.cpu().detach().numpy()
         scheduler.step()
+
         trainloss_for_epoch /= counter
         validationloss_for_epoch = calculate_loss(loader_validation, model, criterion)
         train_losses.append(trainloss_for_epoch)
@@ -135,8 +136,7 @@ def train_multiple(config):
     dev_losses = []
     for i in range(15):
         dev_losses.append(train_model(config))
-    print(dev_losses)
     return min(dev_losses)
 
 if __name__ == '__main__':
-    train_multiple({'weight_decay': 0.17436205057613552, 'lr': 0.010067508963774889, 'c1c2': 10, 'c2c3': 22, 'c3c4': 28, 'c4c5': 36, 'c5c6': 50, 'c6c7': 64, 'c7l1': 80})
+    train_model({'weight_decay': 0.17436205057613552, 'lr': 0.010067508963774889, 'c1c2': 10, 'c2c3': 22, 'c3c4': 28, 'c4c5': 36, 'c5c6': 50, 'c6c7': 64, 'c7l1': 80})
