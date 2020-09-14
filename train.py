@@ -1,16 +1,15 @@
+import sys
+
+import numpy as np
 import torch
 import torch.nn as nn
-from data_reader import DataReader
-from torch.utils.data import DataLoader
-from hypertrophy_dataset import HypertrophyDataset
-from hypertrophy_classifier import HypertrophyClassifier
 import torch.optim as optim
-from datetime import datetime
-import sys
-from torch.optim.lr_scheduler import StepLR
-import numpy as np
-from torchvision import transforms
+from torch.utils.data import DataLoader
+
 import util.plot_util as plot_util
+from data_reader import DataReader
+from hypertrophy_classifier import HypertrophyClassifier
+from hypertrophy_dataset import HypertrophyDataset
 
 
 def calc_accuracy(loader, model):
@@ -59,73 +58,42 @@ def calculate_loss(loader, model, criterion):
     return loss_sum / counter
 
 
-def train_model(config):
-    batch_size = 70
+def train_model():
     device = torch.device("cuda")
-    model =
+    model = HypertrophyClassifier()
 
     model.to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), weight_decay=config["weight_decay"], lr=config["lr"])
 
     in_dir = sys.argv[1]
     data_reader = DataReader(in_dir)
 
+    batch_size = 20
     (train_data, validation_data, test_data) = split_data(0.66, 0.83, data_reader.x, data_reader.y)
-
-    augmenter = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.RandomAffine([-45, 45]),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-    dataset = HypertrophyDataset(train_data[0], train_data[1], device, augmenter)
+    dataset = HypertrophyDataset(train_data[0], train_data[1], device)
     loader_train = DataLoader(dataset, batch_size)
-    loader_train_accuracy = DataLoader(dataset, batch_size)
-    dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
-    loader_validation = DataLoader(dataset, batch_size)
-    # dataset = HypertrophyDataset(test_data[0], test_data[1], device)
-    # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 300
+    epochs = 15
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters())
     train_losses = []
-    dev_losses = []
-    train_accuracies = []
-    dev_accuracies = []
-    scheduler = StepLR(optimizer, step_size=60, gamma=0.65)
-    print("Training has started at {}".format(datetime.now()))
     for epoch in range(epochs):
         trainloss_for_epoch = 0.0
         counter = 0
-        for index, sample in enumerate(loader_train):
-            counter += 1
-            image = sample['image']
+        for sample in loader_train:
+            sequence = sample['sequence']
             target = sample['target']
-
-            predicted = model(image)
+            predicted = model(sequence)
             loss = criterion(predicted, target)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             trainloss_for_epoch += loss.cpu().detach().numpy()
-        scheduler.step()
+            counter += 1
         trainloss_for_epoch /= counter
-        validationloss_for_epoch = calculate_loss(loader_validation, model, criterion)
         train_losses.append(trainloss_for_epoch)
-        dev_losses.append(validationloss_for_epoch)
-        train_accuracies.append(calc_accuracy(loader_train_accuracy, model))
-        dev_accuracies.append(calc_accuracy(loader_validation, model))
 
-    manage_batchnorm(model, False)
-    model.eval()
-    print("Training has finished.")
-    print("Dev accuracy: ", calc_accuracy(loader_validation, model))
-    plot_util.plot_data(train_losses, 'train_loss', dev_losses, 'dev_loss', "loss.png")
-    plot_util.plot_data(train_accuracies, 'train accuracy', dev_accuracies, 'dev accuracy', "accuracy.png")
-
-    return calculate_loss(loader_validation, model, criterion)
-
+    plot_util.plot_data(train_losses, 'train_loss', train_losses, 'dev_loss', "loss.png")
 
 if __name__ == '__main__':
-    train_model({'weight_decay': 0.8370714321136474, 'lr': 0.0017173530442640187, 'c1c2': 8, 'c2c3': 29, 'c3c4': 36, 'c4c5': 58, 'c5c6': 66, 'c6l1': 149})
+    train_model()
 

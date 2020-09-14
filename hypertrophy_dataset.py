@@ -9,20 +9,23 @@ class HypertrophyDataset(Dataset):
         transforms.ToTensor()
     ])
 
-    def __init__(self, images, targets, device, augmenter=default_augmenter):
-        self.images = images
+    def __init__(self, sequences, targets, device, augmenter=default_augmenter):
+        self.sequences = sequences
         self.targets = targets
         self.device = device
         self.augmenter = augmenter
 
     def __len__(self):
-        return len(self.images)
+        return len(self.sequences)
 
     def __getitem__(self, index):
-        image_ = self.images[index]
-        image_ = self.augmenter(image_)
+        sequence_ = self.sequences[index]
+        #sequence_ = self.augmenter(sequence_)
+        sequence_ = list(map(lambda e: (torch.tensor(e, dtype=torch.float, device=self.device)), sequence_))
+
+        sequence_ = torch.cat(sequence_).view(len(sequence_), 1, 110, 110)
         sample = {
-            'image': torch.tensor(image_, dtype=torch.float, device=self.device),
+            'sequence': torch.tensor(sequence_, dtype=torch.float, device=self.device),
             'target': torch.tensor(self.targets[index], dtype=torch.long, device=self.device)
         }
         return sample
