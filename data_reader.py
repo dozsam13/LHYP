@@ -16,7 +16,7 @@ class DataReader:
         for patient_file_path in patient_file_paths:
             with (open(patient_file_path, "rb")) as patient_file:
                 patient_data = pickle.load(patient_file)
-                if len(patient_data.diastole_slices) == 3 and not (patient_data.pathology is None) and self.not_empty(patient_data.pathology):
+                if len(patient_data.diastole_slices) == 3 and not self.empty(patient_data.pathology):
                     multi_channel_picture = np.dstack((patient_data.diastole_slices[0], patient_data.diastole_slices[1],
                                                        patient_data.diastole_slices[2], patient_data.systole_slices[0], patient_data.systole_slices[1], patient_data.systole_slices[2]
                                                        ))
@@ -30,7 +30,7 @@ class DataReader:
                     print(patient_file_path)
 
     def not_empty(self, pathology):
-        return not (pathology is None) and pathology != ""
+        return pathology is None or pathology == ""
 
     @staticmethod
     def __resize(picture):
