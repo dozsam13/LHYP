@@ -29,7 +29,7 @@ class DataReader:
                 else:
                     print(patient_file_path)
 
-    def not_empty(self, pathology):
+    def empty(self, pathology):
         return pathology is None or pathology == ""
 
     @staticmethod
