@@ -139,4 +139,4 @@ def train_multiple(config):
     return min(dev_losses)
 
 if __name__ == '__main__':
-    train_model({'weight_decay': 0.17436205057613552, 'lr': 0.010067508963774889, 'c1c2': 10, 'c2c3': 22, 'c3c4': 28, 'c4c5': 36, 'c5c6': 50, 'c6c7': 64, 'c7l1': 80})
+    print(train_multiple({'weight_decay': 0.0, 'lr': 0.10045252445237711, 'c1c2': 13, 'c2c3': 20, 'c3c4': 42, 'c4c5': 46, 'c5c6': 46, 'c6c7': 60, 'c7l1': 86}))

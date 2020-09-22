@@ -18,7 +18,7 @@ class DataReader:
                 patient_data = pickle.load(patient_file)
                 if len(patient_data.diastole_slices) == 3 and not self.empty(patient_data.pathology):
                     multi_channel_picture = np.dstack((patient_data.diastole_slices[0], patient_data.diastole_slices[1],
-                                                       patient_data.diastole_slices[2], patient_data.systole_slices[0], patient_data.systole_slices[1], patient_data.systole_slices[2]
+                                                       patient_data.diastole_slices[2]
                                                        ))
                     self.x.append(multi_channel_picture)
 
