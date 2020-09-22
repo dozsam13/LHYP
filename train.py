@@ -89,7 +89,7 @@ def train_model(config):
     loader_train = DataLoader(dataset, batch_size)
     loader_train_accuracy = DataLoader(dataset, batch_size)
     dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
-    loader_validation = DataLoader(dataset, batch_size)
+    loader_validation = DataLoader(dataset, 1)
     # dataset = HypertrophyDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
@@ -127,6 +127,7 @@ def train_model(config):
     model.eval()
     print("Training has finished.")
     print("Dev accuracy: ", calc_accuracy(loader_validation, model))
+    plot_util.plot_confusion_matrix(loader_validation, model)
     plot_util.plot_data(train_losses, 'train_loss', dev_losses, 'dev_loss', "loss.png")
     plot_util.plot_data(train_accuracies, 'train accuracy', dev_accuracies, 'dev accuracy', "accuracy.png")
 
@@ -139,4 +140,4 @@ def train_multiple(config):
     return min(dev_losses)
 
 if __name__ == '__main__':
-    print(train_multiple({'weight_decay': 0.0, 'lr': 0.10045252445237711, 'c1c2': 13, 'c2c3': 20, 'c3c4': 42, 'c4c5': 46, 'c5c6': 46, 'c6c7': 60, 'c7l1': 86}))
+    print(train_model({'weight_decay': 0.0, 'lr': 0.10045252445237711, 'c1c2': 13, 'c2c3': 20, 'c3c4': 42, 'c4c5': 46, 'c5c6': 46, 'c6c7': 60, 'c7l1': 86}))

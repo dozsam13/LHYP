@@ -1,6 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+import itertools
 
 def create_data_for_confusion_mx(loader, model):
     counters = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
@@ -14,9 +15,9 @@ def create_data_for_confusion_mx(loader, model):
         counters[target][predicted] += 1
     return counters, counter
 
-def plot_confusion_matrix(loader):
+def plot_confusion_matrix(loader, model):
     cmap = plt.cm.Blues
-    cm = np.array(create_data_for_confusion_mx(loader)[0]).astype('float')
+    cm = np.array(create_data_for_confusion_mx(loader, model)[0]).astype('float')
     classes = ["Normal", "HCM", "Other"]
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title('Confusion matrix')
