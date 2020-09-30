@@ -13,6 +13,12 @@ from torchvision import transforms
 import util.plot_util as plot_util
 
 
+def class_balance(beta, device):
+    #normal, hcm, other
+    c = [115, 116, 185]
+    l = list(map(lambda n: (1-beta)/(1-pow(beta, n)), c))
+    return torch.tensor(l, dtype=torch.float, device=device)
+
 def calc_accuracy(loader, model):
     correctly_labeled = 0
     for sample in loader:
@@ -71,7 +77,7 @@ def train_model(config):
     model = HypertrophyClassifier(config["c1c2"], config["c2c3"], config["c3c4"], config["c4c5"], config["c5c6"], config["c6c7"], config["c7l1"])
 
     model.to(device)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=class_balance(0.9, device))
     optimizer = optim.Adam(model.parameters(), weight_decay=config["weight_decay"], lr=config["lr"])
 
     in_dir = sys.argv[1]
@@ -89,11 +95,11 @@ def train_model(config):
     loader_train = DataLoader(dataset, batch_size)
     loader_train_accuracy = DataLoader(dataset, batch_size)
     dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
-    loader_validation = DataLoader(dataset, 1)
+    loader_validation = DataLoader(dataset, batch_size)
     # dataset = HypertrophyDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 250
+    epochs = 100
     train_losses = []
     dev_losses = []
     train_accuracies = []
@@ -127,7 +133,7 @@ def train_model(config):
     model.eval()
     print("Training has finished.")
     print("Dev accuracy: ", calc_accuracy(loader_validation, model))
-    plot_util.plot_confusion_matrix(loader_validation, model)
+#    plot_util.plot_confusion_matrix(loader_validation, model)
     plot_util.plot_data(train_losses, 'train_loss', dev_losses, 'dev_loss', "loss.png")
     plot_util.plot_data(train_accuracies, 'train accuracy', dev_accuracies, 'dev accuracy', "accuracy.png")
 
@@ -140,4 +146,4 @@ def train_multiple(config):
     return min(dev_losses)
 
 if __name__ == '__main__':
-    print(train_model({'weight_decay': 0.0, 'lr': 0.10045252445237711, 'c1c2': 13, 'c2c3': 20, 'c3c4': 42, 'c4c5': 46, 'c5c6': 46, 'c6c7': 60, 'c7l1': 86}))
+    print(train_model({'weight_decay': 0.0001, 'lr': 0.20045252445237711, 'c1c2': 13, 'c2c3': 20, 'c3c4': 42, 'c4c5': 46, 'c5c6': 46, 'c6c7': 60, 'c7l1': 86}))
