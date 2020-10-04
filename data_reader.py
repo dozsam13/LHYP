@@ -1,6 +1,7 @@
 import pickle
 import os
 import cv2 as cv
+import numpy as np
 
 
 class DataReader:
@@ -16,6 +17,7 @@ class DataReader:
             with (open(patient_file_path, "rb")) as patient_file:
                 patient_data = pickle.load(patient_file)
                 if len(patient_data.hearth_cycle) != 0 and not self.empty(patient_data.pathology):
+                    patient_data.hearth_cycle += [np.zeros((110,110)) for i in range(25-len(patient_data.hearth_cycle))]
                     self.x.append(patient_data.hearth_cycle)
                     if patient_data.pathology in DataReader.possible_pathologies:
                         self.y.append(DataReader.possible_pathologies.index(patient_data.pathology))
@@ -26,7 +28,3 @@ class DataReader:
 
     def empty(self, pathology):
         return pathology is None or pathology == ""
-
-    @staticmethod
-    def __resize(picture):
-        return cv.resize(picture, (224, 224), interpolation=cv.INTER_AREA)

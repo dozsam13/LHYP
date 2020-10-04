@@ -125,6 +125,9 @@ def create_pickle_for_patient(in_dir, out_dir):
         except IndexError:
             print('Index error for {}'.format(scan_id))
             return
+    hearth_cycle = list(filter(lambda x: len(np.unique(x)) > 1, hearth_cycle))
+    if len(hearth_cycle) < 20:
+        return
 
     pathology = read_pathology(meta_txt)
     hearth_cycle = resize_matrices(hearth_cycle)

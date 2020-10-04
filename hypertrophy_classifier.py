@@ -2,19 +2,19 @@ import torch.nn as nn
 import torch
 
 class HypertrophyClassifier(nn.Module):
-    def __init__(self):
+    def __init__(self, device):
         super(HypertrophyClassifier, self).__init__()
+        self.device = device
 
         self.conv = nn.Conv2d(in_channels=1, out_channels=5, kernel_size=(3, 3), stride=1)
         self.conv2 = nn.Conv2d(in_channels=5, out_channels=10, kernel_size=(2, 2), stride=1)
         self.conv3 = nn.Conv2d(in_channels=10, out_channels=20, kernel_size=(3, 3), stride=1)
         self.conv4 = nn.Conv2d(in_channels=20, out_channels=30, kernel_size=(3, 3), stride=1, padding=1)
         self.conv5 = nn.Conv2d(in_channels=30, out_channels=35, kernel_size=(3, 3), stride=1, padding=1)
-        self.conv6 = nn.Conv2d(in_channels=35, out_channels=40, kernel_size=(3, 3), stride=1, padding=1)
-        self.conv7 = nn.Conv2d(in_channels=40, out_channels=20, kernel_size=(1, 1), stride=1)
+        self.conv6 = nn.Conv2d(in_channels=35, out_channels=20, kernel_size=(1, 1), stride=1)
         self.maxpool_2_2 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
 
-        self.LSTM = nn.LSTM(input_size=180, hidden_size=200, num_layers=1, dropout=0)
+        self.LSTM = nn.LSTM(input_size=180, hidden_size=200, num_layers=1, dropout=0.3)
 
         self.linear = nn.Linear(200, 3)
 
@@ -24,8 +24,7 @@ class HypertrophyClassifier(nn.Module):
         self.conv3_bn = nn.BatchNorm2d(20)
         self.conv4_bn = nn.BatchNorm2d(30)
         self.conv5_bn = nn.BatchNorm2d(35)
-        self.conv6_bn = nn.BatchNorm2d(40)
-        self.conv7_bn = nn.BatchNorm2d(20)
+        self.conv6_bn = nn.BatchNorm2d(20)
 
         # dropout
         self.dropout_02 = nn.Dropout(0.2)
@@ -45,7 +44,6 @@ class HypertrophyClassifier(nn.Module):
         temp = self.relu(self.conv5_bn(self.conv5(temp)))
         temp = self.maxpool_2_2(temp)  # (3, 3)
         temp = self.relu(self.conv6_bn(self.conv6(temp)))
-        temp = self.relu(self.conv7_bn(self.conv7(temp)))
 
         return temp.view(-1, 20 * 9)
 
@@ -54,7 +52,7 @@ class HypertrophyClassifier(nn.Module):
         for i in range(x.shape[1]):
             sequence.append(self.cnn(x[:, i, :, :, :]))
         sequence = torch.cat(sequence).view(x.shape[0], x.shape[1], 180)
-        hidden = (torch.zeros(1, x.shape[1], 200), torch.zeros(1, x.shape[1], 200))
+        hidden = (torch.zeros(1, x.shape[1], 200, device = self.device), torch.zeros(1, x.shape[1], 200, device = self.device))
         out, _ = self.LSTM(sequence, hidden)
         out = out[:, out.shape[1]-1, :]
         out = self.linear(out)

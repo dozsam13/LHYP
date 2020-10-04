@@ -61,7 +61,7 @@ def calculate_loss(loader, model, criterion):
 
 def train_model():
     device = torch.device("cuda")
-    model = HypertrophyClassifier()
+    model = HypertrophyClassifier(device)
 
     model.to(device)
 
@@ -77,15 +77,17 @@ def train_model():
     dataset = HypertrophyDataset(validation_data[0], validation_data[1], device)
     loader_validation = DataLoader(dataset, batch_size)
 
-    epochs = 3
+    epochs = 20
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optim.Adam(model.parameters(), weight_decay=0.05)
     train_losses = []
     train_accuracies = []
     dev_losses = []
     dev_accuracies = []
     print("Training has started at {}".format(datetime.now()))
     for epoch in range(epochs):
+        if epoch % 5 == 0:
+            print("Epoch: ", epoch)
         trainloss_for_epoch = 0.0
         counter = 0
         for sample in loader_train:
