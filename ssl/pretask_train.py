@@ -64,7 +64,7 @@ def manage_batchnorm(model, state):
 
 def train_model():
     batch_size = 70
-    device = torch.device("cpu")
+    device = torch.device("cuda")
     model = SegmentOrderModel()
 
     model.to(device)
