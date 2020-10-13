@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from ssl.data_reader import DataReader
+from data_reader import DataReader
 from torch.utils.data import DataLoader
 from ssl.segment_order_model import SegmentOrderModel
 import torch.optim as optim
@@ -23,7 +23,7 @@ def calc_accuracy(loader, model):
         predicted = torch.round(res)
         correctly_labeled += torch.eq(target, predicted).sum().cpu().detach().numpy()
 
-    return correctly_labeled / len(loader.dataset)
+    return correctly_labeled / (len(loader.dataset) * next(iter(loader))["target"].size()[1])
 
 
 def split_data(ratio1, ratio2, data_x):
@@ -63,7 +63,7 @@ def manage_batchnorm(model, state):
 
 
 def train_model():
-    batch_size = 70
+    batch_size = 3
     device = torch.device("cuda")
     model = SegmentOrderModel()
 
@@ -88,7 +88,7 @@ def train_model():
     # dataset = PuzzleDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 1
+    epochs = 40
     train_losses = []
     dev_losses = []
     train_accuracies = []
