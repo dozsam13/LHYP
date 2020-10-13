@@ -75,7 +75,7 @@ def manage_batchnorm(model, state):
 
 def train_model(config):
     batch_size = 70
-    device = torch.device("cpu")
+    device = torch.device("cuda")
     segment_order_model = torch.load(os.path.join(pathlib.Path(__file__).parent.absolute(), "ssl", "segment_oder_model.pth"))
     model = HypertrophyClassifier(segment_order_model)
 
