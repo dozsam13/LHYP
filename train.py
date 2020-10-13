@@ -11,6 +11,8 @@ from torch.optim.lr_scheduler import StepLR
 import numpy as np
 from torchvision import transforms
 import util.plot_util as plot_util
+import os
+import pathlib
 
 
 def class_balance(beta, device):
@@ -73,8 +75,9 @@ def manage_batchnorm(model, state):
 
 def train_model(config):
     batch_size = 70
-    device = torch.device("cuda")
-    model = HypertrophyClassifier(config["c1c2"], config["c2c3"], config["c3c4"], config["c4c5"], config["c5c6"], config["c6c7"], config["c7l1"])
+    device = torch.device("cpu")
+    segment_order_model = torch.load(os.path.join(pathlib.Path(__file__).parent.absolute(), "ssl", "segment_oder_model.pth"))
+    model = HypertrophyClassifier(segment_order_model)
 
     model.to(device)
     criterion = nn.CrossEntropyLoss(weight=class_balance(0.9, device))
@@ -99,7 +102,7 @@ def train_model(config):
     # dataset = HypertrophyDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 100
+    epochs = 1
     train_losses = []
     dev_losses = []
     train_accuracies = []

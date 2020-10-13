@@ -66,8 +66,12 @@ def manage_batchnorm(model, state):
 
 def train_model():
     batch_size = 70
-    device = torch.device("cuda")
-    model = SegmentOrderModel()
+    device = torch.device("cpu")
+    segment_oder_model = SegmentOrderModel()
+    model = nn.Sequential(
+        segment_oder_model,
+        nn.Linear(9*50, 4)
+    )
 
     model.to(device)
     criterion = nn.MSELoss()
@@ -86,11 +90,11 @@ def train_model():
     loader_train = DataLoader(dataset, batch_size)
     loader_train_accuracy = DataLoader(dataset, batch_size)
     dataset = PuzzleDataset(validation_data, device)
-    loader_validation = DataLoader(dataset, batch_size)
+    loader_validation = DataLoader(dataset, batch_size, augmenter)
     # dataset = PuzzleDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 100
+    epochs = 1
     train_losses = []
     dev_losses = []
     train_accuracies = []
@@ -128,7 +132,7 @@ def train_model():
     plot_util.plot_data(train_accuracies, 'train accuracy', dev_accuracies, 'dev accuracy', "accuracy.png")
 
     model_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "segment_oder_model.pth")
-    torch.save(model, model_path)
+    torch.save(segment_oder_model, model_path)
 
 if __name__ == '__main__':
     train_model()
