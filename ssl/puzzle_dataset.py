@@ -4,11 +4,6 @@ from torchvision import transforms
 
 
 class PuzzleDataset(Dataset):
-    default_augmenter = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.ToTensor()
-    ])
-
     def __init__(self, images, device, augmenter=None):
         self.images = images
         self.device = device

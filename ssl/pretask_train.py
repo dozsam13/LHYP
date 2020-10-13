@@ -12,6 +12,8 @@ from torchvision import transforms
 import util.plot_util as plot_util
 from ssl.puzzle_shuffle import PuzzleShuffle
 from ssl.puzzle_dataset import PuzzleDataset
+import pathlib
+import os
 
 def calc_accuracy(loader, model):
     correctly_labeled = 0
@@ -63,7 +65,7 @@ def manage_batchnorm(model, state):
 
 
 def train_model():
-    batch_size = 3
+    batch_size = 70
     device = torch.device("cuda")
     model = SegmentOrderModel()
 
@@ -77,7 +79,7 @@ def train_model():
     (train_data, validation_data, test_data) = split_data(0.66, 0.83, data_reader.x)
 
     augmenter = transforms.Compose([
-        PuzzleShuffle()
+        PuzzleShuffle(2, 110)
     ])
 
     dataset = PuzzleDataset(train_data, device, augmenter)
@@ -88,7 +90,7 @@ def train_model():
     # dataset = PuzzleDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 40
+    epochs = 100
     train_losses = []
     dev_losses = []
     train_accuracies = []
@@ -125,7 +127,8 @@ def train_model():
     plot_util.plot_data(train_losses, 'train_loss', dev_losses, 'dev_loss', "loss.png")
     plot_util.plot_data(train_accuracies, 'train accuracy', dev_accuracies, 'dev accuracy', "accuracy.png")
 
-    return calculate_loss(loader_validation, model, criterion)
+    model_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "segment_oder_model.pth")
+    torch.save(model, model_path)
 
 if __name__ == '__main__':
     train_model()
