@@ -76,12 +76,12 @@ def manage_batchnorm(model, state):
 def train_model(config):
     batch_size = 70
     device = torch.device("cuda")
-    segment_order_model = torch.load(os.path.join(pathlib.Path(__file__).parent.absolute(), "ssl", "segment_oder_model.pth"))
+    segment_order_model = torch.load(os.path.join(pathlib.Path(__file__).parent.absolute(), "ssl", "segment_order_model.pth"))
     model = HypertrophyClassifier(segment_order_model)
 
     model.to(device)
     criterion = nn.CrossEntropyLoss(weight=class_balance(0.9, device))
-    optimizer = optim.Adam(model.parameters(), weight_decay=config["weight_decay"], lr=config["lr"])
+    optimizer = optim.Adam(model.parameters())
 
     in_dir = sys.argv[1]
     data_reader = DataReader(in_dir)
@@ -102,7 +102,7 @@ def train_model(config):
     # dataset = HypertrophyDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 1
+    epochs = 200
     train_losses = []
     dev_losses = []
     train_accuracies = []
@@ -134,7 +134,7 @@ def train_model(config):
 
     manage_batchnorm(model, False)
     model.eval()
-    print("Training has finished.")
+    print("Training has finished at {}".format(datetime.now()))
     print("Dev accuracy: ", calc_accuracy(loader_validation, model))
 #    plot_util.plot_confusion_matrix(loader_validation, model)
     plot_util.plot_data(train_losses, 'train_loss', dev_losses, 'dev_loss', "loss.png")
@@ -149,4 +149,4 @@ def train_multiple(config):
     return min(dev_losses)
 
 if __name__ == '__main__':
-    print(train_model({'weight_decay': 0.0001, 'lr': 0.20045252445237711, 'c1c2': 13, 'c2c3': 20, 'c3c4': 42, 'c4c5': 46, 'c5c6': 46, 'c6c7': 60, 'c7l1': 86}))
+    print(train_model())

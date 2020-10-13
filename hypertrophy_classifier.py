@@ -2,9 +2,9 @@ import torch.nn as nn
 
 
 class HypertrophyClassifier(nn.Module):
-    def __init__(self, segment_oder_model):
+    def __init__(self, segment_order_model):
         super(HypertrophyClassifier, self).__init__()
-        self.segment_order_model = segment_oder_model
+        self.segment_order_model = segment_order_model
         self.linear1 = nn.Linear(9 * 50, 3)
 
         # bn

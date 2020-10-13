@@ -67,9 +67,9 @@ def manage_batchnorm(model, state):
 def train_model():
     batch_size = 70
     device = torch.device("cuda")
-    segment_oder_model = SegmentOrderModel()
+    segment_order_model = SegmentOrderModel()
     model = nn.Sequential(
-        segment_oder_model,
+        segment_order_model,
         nn.Linear(9*50, 4)
     )
 
@@ -94,7 +94,7 @@ def train_model():
     # dataset = PuzzleDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 1
+    epochs = 1000
     train_losses = []
     dev_losses = []
     train_accuracies = []
@@ -131,8 +131,8 @@ def train_model():
     plot_util.plot_data(train_losses, 'train_loss', dev_losses, 'dev_loss', "loss.png")
     plot_util.plot_data(train_accuracies, 'train accuracy', dev_accuracies, 'dev accuracy', "accuracy.png")
 
-    model_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "segment_oder_model.pth")
-    torch.save(segment_oder_model, model_path)
+    model_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "segment_order_model.pth")
+    torch.save(segment_order_model, model_path)
 
 if __name__ == '__main__':
     train_model()
