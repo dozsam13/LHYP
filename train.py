@@ -22,6 +22,12 @@ def class_balance(beta, device):
     return torch.tensor(l, dtype=torch.float, device=device)
 
 
+def step_lr_scheduler(epoch, scheduler_inc, scheduler_dec):
+    if epoch < 60:
+        scheduler_inc.step()
+    else:
+        scheduler_dec.step()
+
 def calc_accuracy(loader, model):
     correctly_labeled = 0
     for sample in loader:
@@ -75,7 +81,7 @@ def manage_batchnorm(model, state):
 
 
 def train_model():
-    batch_size = 70
+    batch_size = 16
     device = torch.device("cuda")
     segment_order_model = torch.load(
         os.path.join(pathlib.Path(__file__).parent.absolute(), "ssl", "segment_order_model.pth"))
@@ -83,7 +89,7 @@ def train_model():
 
     model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.3)
+    optimizer = optim.SGD(model.parameters(), lr=0.00005, momentum=0.9, weight_decay=0.3)
 
     in_dir = sys.argv[1]
     data_reader = DataReader(in_dir)
@@ -104,12 +110,13 @@ def train_model():
     # dataset = HypertrophyDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 300
+    epochs = 150
     train_losses = []
     dev_losses = []
     train_accuracies = []
     dev_accuracies = []
-    scheduler = StepLR(optimizer, step_size=60, gamma=0.85)
+    scheduler_inc = StepLR(optimizer, step_size=20, gamma=1.8)
+    scheduler_dec = StepLR(optimizer, step_size=60, gamma=0.85)
     print("Training has started at {}".format(datetime.now()))
     for epoch in range(epochs):
         trainloss_for_epoch = 0.0
@@ -125,8 +132,7 @@ def train_model():
             loss.backward()
             optimizer.step()
             trainloss_for_epoch += loss.cpu().detach().numpy()
-            scheduler.step()
-
+        step_lr_scheduler(epoch, scheduler_inc, scheduler_dec)
         trainloss_for_epoch /= counter
         validationloss_for_epoch = calculate_loss(loader_validation, model, criterion)
         train_losses.append(trainloss_for_epoch)
@@ -134,7 +140,7 @@ def train_model():
         train_accuracies.append(calc_accuracy(loader_train_accuracy, model))
         dev_accuracies.append(calc_accuracy(loader_validation, model))
 
-    model.eval()
+    #model.eval()
     manage_batchnorm(model, False)
 
     print("Training has finished at {}".format(datetime.now()))

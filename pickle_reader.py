@@ -6,7 +6,7 @@ import numpy as np
 
 fn = sys.argv[1]
 patient_data = None
-img_shuffle = PuzzleShuffle(2, 110)
+img_shuffle = PuzzleShuffle(3)
 with (open(fn, "rb")) as openfile:
   while True:
       try:
