@@ -65,12 +65,13 @@ def manage_batchnorm(model, state):
 
 
 def train_model():
+    n_split = 3
     batch_size = 70
     device = torch.device("cuda")
     segment_order_model = SegmentOrderModel()
     model = nn.Sequential(
         segment_order_model,
-        nn.Linear(9*80, 4)
+        nn.Linear(9*80, n_split*n_split)
     )
 
     model.to(device)
@@ -83,15 +84,15 @@ def train_model():
     (train_data, validation_data, test_data) = split_data(0.66, 0.83, data_reader.x)
 
     augmenter = transforms.Compose([
-        PuzzleShuffle(2, 110)
+        PuzzleShuffle(n_split)
     ])
 
-    dataset = PuzzleDataset(train_data, device, augmenter)
+    dataset = PuzzleDataset(train_data, device, n_split, augmenter)
     loader_train = DataLoader(dataset, batch_size)
     loader_train_accuracy = DataLoader(dataset, batch_size)
-    dataset = PuzzleDataset(validation_data, device)
+    dataset = PuzzleDataset(validation_data, device, n_split)
     loader_validation = DataLoader(dataset, batch_size)
-    # dataset = PuzzleDataset(test_data[0], test_data[1], device)
+    # dataset = PuzzleDataset(test_data[0], test_data[1], device, n_split)
     # loader_test = DataLoader(dataset, batch_size)
 
     epochs = 200
