@@ -10,8 +10,8 @@ class PuzzleShuffle(object):
     def __call__(self, image):
         shuffled_picture = np.ndarray(image.shape)
         indexes = [i for i in range(self.cut_n*self.cut_n)]
-        random.shuffle(indexes)
-        random.shuffle(indexes)
+        if random.uniform(0, 1) > 0.042:
+            random.shuffle(indexes)
         for i, e in enumerate(indexes):
             ix, iy = self.calculate_offset(i)
             ex, ey = self.calculate_offset(e)

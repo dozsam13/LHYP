@@ -16,10 +16,11 @@ import pathlib
 
 
 def class_balance(beta, device):
-    #normal, hcm, other
+    # normal, hcm, other
     c = [115, 116, 185]
-    l = list(map(lambda n: (1-beta)/(1-pow(beta, n)), c))
+    l = list(map(lambda n: (1 - beta) / (1 - pow(beta, n)), c))
     return torch.tensor(l, dtype=torch.float, device=device)
+
 
 def calc_accuracy(loader, model):
     correctly_labeled = 0
@@ -73,15 +74,16 @@ def manage_batchnorm(model, state):
             child.track_running_stats = state
 
 
-def train_model(config):
+def train_model():
     batch_size = 70
     device = torch.device("cuda")
-    segment_order_model = torch.load(os.path.join(pathlib.Path(__file__).parent.absolute(), "ssl", "segment_order_model.pth"))
+    segment_order_model = torch.load(
+        os.path.join(pathlib.Path(__file__).parent.absolute(), "ssl", "segment_order_model.pth"))
     model = HypertrophyClassifier(segment_order_model)
 
     model.to(device)
-    criterion = nn.CrossEntropyLoss(weight=class_balance(0.9, device))
-    optimizer = optim.Adam(model.parameters())
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.3)
 
     in_dir = sys.argv[1]
     data_reader = DataReader(in_dir)
@@ -102,7 +104,7 @@ def train_model(config):
     # dataset = HypertrophyDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 200
+    epochs = 300
     train_losses = []
     dev_losses = []
     train_accuracies = []
@@ -123,7 +125,7 @@ def train_model(config):
             loss.backward()
             optimizer.step()
             trainloss_for_epoch += loss.cpu().detach().numpy()
-        scheduler.step()
+            scheduler.step()
 
         trainloss_for_epoch /= counter
         validationloss_for_epoch = calculate_loss(loader_validation, model, criterion)
@@ -132,15 +134,16 @@ def train_model(config):
         train_accuracies.append(calc_accuracy(loader_train_accuracy, model))
         dev_accuracies.append(calc_accuracy(loader_validation, model))
 
-    manage_batchnorm(model, False)
     model.eval()
+    manage_batchnorm(model, False)
+
     print("Training has finished at {}".format(datetime.now()))
     print("Dev accuracy: ", calc_accuracy(loader_validation, model))
-#    plot_util.plot_confusion_matrix(loader_validation, model)
+    print(max(dev_accuracies))
+    #    plot_util.plot_confusion_matrix(loader_validation, model)
     plot_util.plot_data(train_losses, 'train_loss', dev_losses, 'dev_loss', "loss.png")
     plot_util.plot_data(train_accuracies, 'train accuracy', dev_accuracies, 'dev accuracy', "accuracy.png")
 
-    return calculate_loss(loader_validation, model, criterion)
 
 def train_multiple(config):
     dev_losses = []
@@ -148,5 +151,6 @@ def train_multiple(config):
         dev_losses.append(train_model(config))
     return min(dev_losses)
 
+
 if __name__ == '__main__':
-    print(train_model())
+    train_model()

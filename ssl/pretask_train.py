@@ -70,7 +70,7 @@ def train_model():
     segment_order_model = SegmentOrderModel()
     model = nn.Sequential(
         segment_order_model,
-        nn.Linear(9*50, 4)
+        nn.Linear(9*80, 4)
     )
 
     model.to(device)
@@ -89,12 +89,12 @@ def train_model():
     dataset = PuzzleDataset(train_data, device, augmenter)
     loader_train = DataLoader(dataset, batch_size)
     loader_train_accuracy = DataLoader(dataset, batch_size)
-    dataset = PuzzleDataset(validation_data, device, augmenter)
+    dataset = PuzzleDataset(validation_data, device)
     loader_validation = DataLoader(dataset, batch_size)
     # dataset = PuzzleDataset(test_data[0], test_data[1], device)
     # loader_test = DataLoader(dataset, batch_size)
 
-    epochs = 1000
+    epochs = 200
     train_losses = []
     dev_losses = []
     train_accuracies = []
@@ -123,11 +123,7 @@ def train_model():
         train_accuracies.append(calc_accuracy(loader_train_accuracy, model))
         dev_accuracies.append(calc_accuracy(loader_validation, model))
 
-    manage_batchnorm(model, False)
-    model.eval()
     print("Training has finished.")
-    print("Dev accuracy: ", calc_accuracy(loader_validation, model))
-#    plot_util.plot_confusion_matrix(loader_validation, model)
     plot_util.plot_data(train_losses, 'train_loss', dev_losses, 'dev_loss', "loss.png")
     plot_util.plot_data(train_accuracies, 'train accuracy', dev_accuracies, 'dev accuracy', "accuracy.png")
 
