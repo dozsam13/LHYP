@@ -16,16 +16,7 @@ class PuzzleShuffle(object):
         for i, e in enumerate(indexes):
             ix, iy = self.calculate_offset(i)
             ex, ey = self.calculate_offset(e)
-            shuffledpic = shuffled_picture[ix:ix + self.cut_step, iy:iy + self.cut_step, :]
             origpic = image[ex:ex + self.cut_step, ey:ey + self.cut_step, :]
-
-            if not shuffledpic.shape == origpic.shape:
-                print(ix, iy, ex, ey)
-                print(shuffledpic.shape)
-                print(origpic.shape)
-                print("I: ", i, " E: ", e)
-                print(self.cut_step, self.div_offset)
-                print("-------------------------------------")
 
             shuffled_picture[ix:ix + self.cut_step, iy:iy + self.cut_step, :] = origpic
 

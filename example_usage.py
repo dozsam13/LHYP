@@ -6,8 +6,8 @@ from dicom_reader import DCMreaderVM
 from con2img import draw_contourmtcs2image as draw
 
 
-image_folder = 'C:\\dev\\LHYP\\sample\\13457546AMR801\\sa\\images'
-con_file = 'C:\\dev\\LHYP\\sample\\13457546AMR801\\sa\\contours.con'
+image_folder = 'C:\\dev\\LHYP\\sample\\8494150AMR806\\sa\\images'
+con_file = 'C:\\dev\\LHYP\\sample\\8494150AMR806\\sa\\contours.con'
 
 # reading the dicom files
 dr = DCMreaderVM(image_folder)
