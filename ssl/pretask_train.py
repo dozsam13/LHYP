@@ -65,8 +65,8 @@ def manage_batchnorm(model, state):
 
 
 def train_model():
-    n_split = 3
-    batch_size = 70
+    n_split = 2
+    batch_size = 16
     device = torch.device("cuda")
     segment_order_model = SegmentOrderModel()
     model = nn.Sequential(
@@ -81,7 +81,7 @@ def train_model():
     in_dir = sys.argv[1]
     data_reader = DataReader(in_dir)
 
-    (train_data, validation_data, test_data) = split_data(0.66, 0.83, data_reader.x)
+    (train_data, validation_data, test_data) = split_data(0.8, 0.98, data_reader.x)
 
     augmenter = transforms.Compose([
         PuzzleShuffle(n_split)
