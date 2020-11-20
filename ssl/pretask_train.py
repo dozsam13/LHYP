@@ -71,7 +71,7 @@ def train_model():
     segment_order_model = SegmentOrderModel()
     model = nn.Sequential(
         segment_order_model,
-        nn.Linear(9*80, n_split*n_split)
+        nn.Linear(4*80, n_split*n_split)
     )
 
     model.to(device)

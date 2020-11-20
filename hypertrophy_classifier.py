@@ -5,7 +5,7 @@ class HypertrophyClassifier(nn.Module):
     def __init__(self, segment_order_model):
         super(HypertrophyClassifier, self).__init__()
         self.segment_order_model = segment_order_model
-        self.linear1 = nn.Linear(9 * 80, 3)
+        self.linear1 = nn.Linear(4 * 80, 3)
 
         # bn
         self.linear1_bn = nn.BatchNorm1d(3)

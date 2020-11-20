@@ -46,6 +46,6 @@ class SegmentOrderModel(nn.Module):
         temp = self.relu(self.conv5_bn(self.conv5(temp)))  # (17, 17)
         temp = self.maxpool_2_2(temp)  # (19,19)
         temp = self.relu(self.conv6_bn(self.conv6(temp)))  # (10, 10)
-        temp = temp.view(-1, 80*9)
+        temp = temp.view(-1, 80*4)
 
         return temp
