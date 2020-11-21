@@ -12,6 +12,13 @@ def createJpg(pickle_path, to_path):
                 patient_data = pickle.load(openfile)
             except EOFError:
                 break
+    # img = patient_data.diastole_slices[1]
+    # blur = cv.GaussianBlur(img,(5,5),0)
+    # plt.subplot(121), plt.imshow(img), plt.title('Original')
+    # plt.xticks([]), plt.yticks([])
+    # plt.subplot(122), plt.imshow(blur), plt.title('Blurred')
+    # plt.xticks([]), plt.yticks([])
+    # plt.show()
     img_path_prefix = os.path.join(to_path, patient_data.scan_id)
     plt.imsave(img_path_prefix + "_bottom.jpg", patient_data.diastole_slices[0], cmap = "gray")
     plt.imsave(img_path_prefix + "_mid.jpg", patient_data.diastole_slices[1], cmap = "gray")

@@ -98,6 +98,7 @@ def train_model():
 
     augmenter = transforms.Compose([
         transforms.ToPILImage(),
+        transforms.GaussianBlur((5, 5), sigma=(0.5, 0.5)),
         transforms.RandomAffine([-45, 45]),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
