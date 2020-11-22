@@ -72,17 +72,6 @@ def read_pathology(meta_txt):
 def resize_matrices(matrices):
     return list(map(lambda x: cv.resize(x, (224, 224), interpolation=cv.INTER_AREA), matrices))
 
-def calc_max_radius(contours):
-    max_diameter = 0
-    for slc in contours:
-        for frm in contours[slc]:
-            if "lp" in contours[slc][frm].keys():
-                min_x = min(contours[slc][frm]["lp"], key=lambda x: x[0])[0]
-                max_x = max(contours[slc][frm]["lp"], key=lambda x: x[0])[0]
-                min_y = min(contours[slc][frm]["lp"], key=lambda x: x[1])[1]
-                max_y = max(contours[slc][frm]["lp"], key=lambda x: x[1])[1]
-                max_diameter = max([max_diameter, max_x-min_x, max_y-min_y])
-    return (max_diameter/2).astype(int)
 
 
 def calc_contour_center(contours_for_img):
@@ -99,7 +88,19 @@ def center_crop(img, crop_center, max_contour_radius):
     return img[crop_center[0] - max_contour_radius: crop_center[0] + max_contour_radius, crop_center[1] - max_contour_radius: crop_center[1] + max_contour_radius]
 
 
-def create_pickle_for_patient(in_dir, out_dir , max_contour_radius):
+def calc_max_contour_radius(diastole_frame, sampling_slices, contours):
+    max_diameter = 0
+    for slc in sampling_slices:
+        if "lp" in contours[slc][diastole_frame].keys():
+            min_x = min(contours[slc][diastole_frame]["lp"], key=lambda x: x[0])[0]
+            max_x = max(contours[slc][diastole_frame]["lp"], key=lambda x: x[0])[0]
+            min_y = min(contours[slc][diastole_frame]["lp"], key=lambda x: x[1])[1]
+            max_y = max(contours[slc][diastole_frame]["lp"], key=lambda x: x[1])[1]
+            max_diameter = max([max_diameter, max_x - min_x, max_y - min_y])
+    return (max_diameter / 2).astype(int) + 2 if not max_diameter == 0 else 40
+
+
+def create_pickle_for_patient(in_dir, out_dir):
     scan_id = os.path.basename(in_dir)
     image_folder = os.path.join(in_dir, "sa", "images")
     con_file = os.path.join(in_dir, "sa", "contours.con")
@@ -139,6 +140,7 @@ def create_pickle_for_patient(in_dir, out_dir , max_contour_radius):
     sampling_slices = calculate_sampling_slices(frame_slice_dict, diastole_frame)
     systole_frames = []
     diastole_frames = []
+    max_contour_radius = calc_max_contour_radius(diastole_frame, sampling_slices, contours)
     for slice_index in sampling_slices:
         try:
             crop_center = calc_contour_center(contours[slice_index][diastole_frame])
@@ -165,15 +167,8 @@ else:
     patient_folders = sorted(os.listdir(in_dir))
     target_files_already_exists = set(os.listdir(out_dir))
 
-    contour_radiuses = []
-    for patient_folder in patient_folders:
-        con_file = os.path.join(os.path.join(in_dir, patient_folder), "sa", "contours.con")
-        cr = CONreaderVM(con_file)
-        contours = cr.get_hierarchical_contours()
-        contour_radiuses.append(calc_max_radius(contours))
-
     for patient_folder in patient_folders:
         if not (patient_folder + '.p' in target_files_already_exists):
-            create_pickle_for_patient(os.path.join(in_dir, patient_folder), out_dir, max(contour_radiuses) + 3)
+            create_pickle_for_patient(os.path.join(in_dir, patient_folder), out_dir)
         else:
             print('Already done: {}'.format(patient_folder))
