@@ -1,5 +1,6 @@
 import pickle
 import os
+import cv2 as cv
 import numpy as np
 
 
@@ -20,11 +21,14 @@ class DataReader:
                                                        patient_data.diastole_slices[2]
                                                        ))
                     self.x.append(multi_channel_picture)
-
+                    y_data = [0 for i in range(len(self.possible_pathologies) + 1)]
+                    y_index = 0
                     if patient_data.pathology in DataReader.possible_pathologies:
-                        self.y.append(DataReader.possible_pathologies.index(patient_data.pathology))
+                        y_index = DataReader.possible_pathologies.index(patient_data.pathology)
                     else:
-                        self.y.append(len(self.possible_pathologies))
+                        y_index = len(self.possible_pathologies)
+                    y_data[y_index] = 1
+                    self.y.append(y_data)
                 else:
                     print(patient_file_path)
 

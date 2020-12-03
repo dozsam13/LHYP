@@ -98,11 +98,12 @@ def train_model():
 
     augmenter = transforms.Compose([
         transforms.ToPILImage(),
-        transforms.GaussianBlur((5, 5), sigma=(0.5, 0.5)),
+    #    transforms.GaussianBlur((5, 5), sigma=(0.5, 0.5)),
         transforms.RandomAffine([-45, 45]),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    #    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
+
     dataset = HypertrophyDataset(train_data[0], train_data[1], device, augmenter)
     loader_train = DataLoader(dataset, batch_size)
     loader_train_accuracy = DataLoader(dataset, batch_size)
@@ -141,7 +142,7 @@ def train_model():
         train_accuracies.append(calc_accuracy(loader_train_accuracy, model))
         dev_accuracies.append(calc_accuracy(loader_validation, model))
 
-    #model.eval()
+    model.eval()
     #manage_batchnorm(model, False)
 
     print("Training has finished at {}".format(datetime.now()))
