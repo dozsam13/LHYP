@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 import sys
+import matplotlib.pyplot
 
 from torch.utils.data import DataLoader
 
@@ -68,45 +69,49 @@ def train():
     dim_z = 10
     in_dir = sys.argv[1]
     data_reader = DataReader(in_dir)
-    device = torch.device("cpu")
+    device = torch.device("cuda")
     dataset = HypertrophyDataset(data_reader.x, data_reader.y, device)
     data_loader = DataLoader(dataset, batch_size)
     discriminator = Discriminator(8, 3, 82).to(device)
     generator = Generator(10).to(device)
 
-    loss = nn.MSELoss()
     optimizer_g = torch.optim.Adam(generator.parameters())
     optimizer_d = torch.optim.Adam(discriminator.parameters())
 
-
-    noise = torch.FloatTensor(batch_size, dim_z, 1, 1).to(device)
-    label_real = torch.FloatTensor(batch_size, 1).fill_(1).to(device)
-    label_fake = torch.FloatTensor(batch_size, 1).fill_(0).to(device)
     criterion = nn.BCELoss()
-    for index, sample in enumerate(data_loader):
-        discriminator.zero_grad()
 
-        label_real.data.resize(batch_size, 1).fill_(1)
-        label_fake.data.resize(batch_size, 1).fill_(0)
-        noise.data.resize_(batch_size, dim_z, 1, 1).normal_(0, 1)
+    epochs = 30
+    for epoch in range(epochs):
+        for index, sample in enumerate(data_loader):
+            label = sample['target']
+            real = sample['image']
+            current_batch_size = len(real)
+            discriminator.zero_grad()
 
-        attr = sample['target']
-        real = sample['image']
-        p_real = discriminator(real, attr)
+            noise = torch.FloatTensor(current_batch_size, dim_z, 1, 1).to(device).normal_(0, 1)
+            label_real = torch.FloatTensor(current_batch_size, 1).fill_(1).to(device)
+            label_fake = torch.FloatTensor(current_batch_size, 1).fill_(0).to(device)
 
-        fake = generator(noise, attr)
-        p_fake = discriminator(fake.detach(), attr)
+            p_real = discriminator(real, label)
 
-        d_loss = criterion(p_real, label_real) + criterion(p_fake, label_fake)
-        d_loss.backward()
-        optimizer_d.step()
+            fake = generator(noise, label)
+            p_fake = discriminator(fake.detach(), label)
 
-        # train generator
-        generator.zero_grad()
-        p_fake = discriminator(fake, attr)
-        g_loss = criterion(p_fake, label_real)
-        g_loss.backward()
-        optimizer_g.step()
+            d_loss = criterion(p_real, label_real) + criterion(p_fake, label_fake)
+            d_loss.backward()
+            optimizer_d.step()
+
+            # train generator
+            generator.zero_grad()
+            p_fake = discriminator(fake, label)
+            g_loss = criterion(p_fake, label_real)
+            g_loss.backward()
+            optimizer_g.step()
+
+    noise = torch.FloatTensor(1, dim_z, 1, 1).to(device).normal_(0, 1)
+    fake = generator(noise, torch.FloatTensor([1, 0, 0])).cpu().detach().numpy()
+    print(abs(fake[0][1]))
+    matplotlib.pyplot.imsave("vmi.png", abs(fake[0][1]), cmap='gray')
 
 
 train()
