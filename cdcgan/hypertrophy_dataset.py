@@ -23,6 +23,6 @@ class HypertrophyDataset(Dataset):
         image_ = self.augmenter(image_)
         sample = {
             'image': torch.tensor(image_, dtype=torch.float, device=self.device),
-            'target': torch.FloatTensor(self.targets[index])
+            'target': torch.tensor(self.targets[index], dtype=torch.float, device=self.device)
         }
         return sample
